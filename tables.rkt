@@ -1,13 +1,13 @@
 #lang racket
 
-(require data/gvector)
+(require data/gvector db)
 
 (require (for-syntax syntax/parse))
 
 (require "types.rkt"
          "sanitizers.rkt")
 
-(provide create-table)
+(provide (all-defined-out))
 
 ;; CONSTANTS
 (define default-gvector-length 100)
@@ -15,6 +15,71 @@
 ;; Should the serieses be a hash table?
 (define (create-table name)
   (table name (make-gvector)))
+
+(define-syntax (create-numeric-table stx)
+  (syntax-parse stx
+    [(_ name fields ...)
+     #`(let ([T (create-table (format "~a" (quote name)))])
+         (for ([col (map (λ (f) (format "~a" f)) (quote (fields ...)))])
+           (add-series T (create-series col number-sanitizer)))
+         T)]))
+
+
+(define (create-empty-file name exists)
+  (define fname (format "~a-~a.sqlite" name (current-seconds)))
+  ;; Make sure it is an SQLite DB file.
+  (when (and (equal? exists 'overwrite)
+             (file-exists? fname)
+             (regexp-match "sqlite$" fname))
+    (delete-file fname))
+  ;; Create an empty file.
+  (close-output-port (open-output-file fname))
+  fname)
+
+
+(define (->str o)
+  (format "~a" o))
+
+(define (clean-name str)
+  (for ([sym '("/" "\\" "-" ":" ";" "\\." "," "\\+")])
+    (set! str (regexp-replace* sym str "")))
+  str)
+
+(define (setup-sqlite T conn)
+  (define field-string (apply string-append
+                              (add-between
+                               (for/list ([s (table-serieses T)])
+                                 (format "~a number" (clean-name (->str (series-name s)))))
+                               ", ")))
+  (define qstring
+    (format "create table ~a (ndx integer primary key ~a"
+            (clean-name (table-name T))
+            (if (> (string-length field-string) 0)
+                (format ", ~a)" field-string)
+                ")")
+            ))
+  ;;(printf "qstring: ~a~n" qstring)
+  (query-exec conn qstring))
+
+(define (save T)
+  ;; Create an empty file.
+  (define db-fname (create-empty-file (table-name T) 'overwrite))
+  (define conn (sqlite3-connect #:database db-fname))
+  ;; Create the table in the SQLite file
+  (setup-sqlite T conn)
+  (for ([row (get-rows T)])
+    (define field-names (add-between
+                         (for/list ([s (table-serieses T)])
+                           (clean-name (->str (series-name s))))
+                         ", "))
+    (define insert-statement (format "insert into ~a ~a values ~a"
+                                     (clean-name (table-name T))
+                                     field-names
+                                     (add-between (map ->str row) ",")))
+    ;;(printf "is: ~a~n" insert-statement)
+    (query-exec conn insert-statement))
+  (disconnect conn))
+  
 
 (define (rename-table T name)
   (table name (table-serieses T)))
@@ -108,8 +173,8 @@
 
 (define-syntax (select stx)
   (syntax-parse stx
-    [(s (~optional (~seq #:columns cols:id ...))
-        (~optional (~seq #:from T)))
+    [(s (~alt (~seq #:column cols:id)
+              (~once (~seq #:from T))) ...)
      #`(let ([tn (table-name T)])
          (unless (table? T)
            (error 'select "Not a table: [ ~a ]" T))
@@ -175,8 +240,8 @@
 (define-syntax (sieve stx)
   (syntax-parse stx
     [(s T
-        (~optional (~seq #:using cols:id ...))
-        (~optional (~seq #:where Q:expr)))
+        (~alt (~seq #:using cols:id)
+              (~once (~seq #:where Q:expr))) ...)
         
      #`(let ()
          (define newT (create-table (format "sieve-~a" (table-name T))))
@@ -242,8 +307,9 @@
                                    #:values (append (range 5 10) (list 5))))
       T))
   (define select-1
-    (select #:columns streaks
-            #:from baconT))
+    (select #:from baconT
+            #:column streaks
+            ))
   ;; Should be a deep equality test.
   (check-equal? test-1 select-1)
 
@@ -265,9 +331,12 @@
   (define sieved-2
     (rename-table
      (sieve baconT
-            #:using strips streaks
-            #:where (and (> streaks 3) (< strips 2)))
+            #:using strips
+            #:using streaks
+            #:where (and (> streaks 3) (< strips 2))
+            
+           )
      "big-bacons"))
   (check-equal? test-2 sieved-2)
-  
+  (save sieved-2)
   )
