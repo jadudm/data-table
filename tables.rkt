@@ -1,10 +1,9 @@
 #lang racket
 
-(require db
-         data/gvector
-         pprint
-         )
+(require data/gvector)
+
 (require (for-syntax syntax/parse))
+
 (require "types.rkt"
          "sanitizers.rkt")
 
@@ -70,6 +69,10 @@
      (for ([v sanitized])
        (gvector-add! (series-values the-series) v))]
 
+    ;; As a list
+    [(list (? table? T) (? list? v*))
+     (apply insert (cons T v*))]
+    
     ;; Insert values... must be same as number of serieses in the T
     [(list (? table? T) v* ...)
      (cond
@@ -84,7 +87,8 @@
         (for ([s (table-serieses T)]
               [v v*])
           (insert T s v))]
-       )]))
+       )]
+    ))
 
 (define-syntax (select-v1 stx)
   (syntax-parse stx
@@ -224,7 +228,9 @@
                                   #:values (map (λ (n) n) (range 5 10))))
   (add-series baconT stripsS)
   (add-series baconT streaksS)
-  (insert baconT 3 5)
+  (insert baconT '(3 5))
+  ;; Could also be
+  ;; (insert baconT 3 5)
 
   ;; TEST
   ;; Does the select statement return a new table containing the
