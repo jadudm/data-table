@@ -76,22 +76,6 @@
        )]
     ))
 
-(define-syntax (select-v1 stx)
-  (syntax-parse stx
-    [(s ((~datum columns) cols ...) (~datum from) T)
-     #`(let ([tn (table-name T)])
-         (unless (table? T)
-           (error 'select "Not a table: [ ~a ]" T))
-         (define table-name
-           (apply string-append
-                  (add-between (map (λ (o) (format "~a" o))
-                                    (cons tn (quote (cols ...)))) "-")))
-           (define newT (create-table table-name))
-         (for ([c (quote (cols ...))])
-           (define s (get-series-by-name T (format "~a" c)))
-           (add-series newT s))
-         newT)]))
-
 (define-syntax (select stx)
   (syntax-parse stx
     [(s (~alt (~seq #:column cols:id)
@@ -122,41 +106,6 @@
      #`(#,op #,plhs #,prhs))]
     ))
     
-(define-syntax (sieve-v1 stx)
-  (syntax-parse stx
-    [(s T ((~datum using) cols ...) (~datum where) Q)
-     #`(let ()
-         (define newT (create-table (format "sieve-~a" (table-name T))))
-         (define col-ndx-map (make-hash))
-         ;; This gives me the index for a given column name into the
-         ;; full row of the source table.
-         (for ([c (map string->symbol (for/list ([s (table-serieses T)]) (series-name s)))]
-               [ndx (range (gvector-count (table-serieses T)))])
-           (hash-set! col-ndx-map c ndx))
-
-         ;; Now, go through each row.
-         (define keep '())
-         (for ([row (get-rows T)])
-           (define newQ (parse-query (quasiquote Q) col-ndx-map row))
-           ;; (printf "newQ: ~a~n" newQ)
-           (when (eval newQ)
-             ;; (printf "Keeping: ~a~n" row)
-             (set! keep (cons row keep)))
-           )
-
-         (printf "Kept: ~a~n" keep)
-         ;; Add the kept data to the newT
-         (for ([c (quote (cols ...))]
-               [ndx (length (quote (cols ...)))]
-               )
-           (define s (get-series-by-name T (format "~a" c)))
-           (add-series newT (create-series (series-name s)
-                                           (series-sanitizer s)
-                                           #:values
-                                           (map (λ (r) (list-ref r ndx)) keep)))
-           )
-         newT
-         )]))
 
 (define-syntax (sieve stx)
   (syntax-parse stx
