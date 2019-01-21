@@ -107,6 +107,11 @@
     ))
     
 
+;; FIXME
+;; These should be thin wrappers around functions. Just enough
+;; here to do the quoting, then pull it out to a function.
+;; This will require rethinking things as a functional interface,
+;; and then wrapping the language around it.
 (define-syntax (sieve stx)
   (syntax-parse stx
     [(s T
@@ -146,11 +151,6 @@
          newT
          )]))
          
-
-(define (string-sanitizer ls)
-  (map (λ (o) (format "~a" o)) ls))
-
-
 (module+ test
   (require rackunit)
 

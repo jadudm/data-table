@@ -21,3 +21,7 @@
          (error 'number-sanitizer "Element at index [ ~a ] is not a number: [ ~a ]" ndx elem)]
         )))
   sanitized)
+
+
+(define (string-sanitizer ls)
+  (map (λ (o) (format "~a" o)) ls))
