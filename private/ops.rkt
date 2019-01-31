@@ -2,7 +2,11 @@
 
 (require data/gvector)
 (require "types.rkt")
-(provide (all-defined-out))
+(provide (contract-out
+          [rename-table            (-> table? string? table?)]
+          [get-series-by-name      (-> table? string? series?)]
+          [get-rows                (-> table? vector?)]
+          ))
 
 
 (define (rename-table T name)
@@ -11,7 +15,6 @@
 
 (define (round-to-nearest v n)
   (* (add1 (modulo v n)) n ))
-
 
 (define (get-series-by-name T sname)
   (define (finder gv ndx)

@@ -1,18 +1,28 @@
 #lang racket
 
-(require data/gvector db)
-
-(require (for-syntax syntax/parse))
-
-(require "types.rkt"
-         "ops.rkt"
-         "../sqlite.rkt"
-         "../sanitizers.rkt")
 
 (provide (contract-out
           [create-table          (-> (or/c symbol? string?) any/c)]
-          [create-numeric-table  (-> (or/c symbol? string?) (list/c (or/c symbol? string?)) any/c)]
+          [create-numeric-table  (-> (or/c symbol? string?) (list/c (or/c symbol? string?)) any)]
+          [create-series         (-> (or/c symbol? string?)
+                                     (-> any/c any)
+                                     #:values list?
+                                     series?)]
+          [add-series            (-> table? series? table?)]
+          [insert                (case->
+                                  (-> table? series? list? any)
+                                  (-> table? list? any)
+                                  (-> table? series? any)
+                                  (-> table? #:rest any/c any))]
+          [select                 (-> #:columns list? #:from table? table?)]
+          [sieve                  (-> table? #:using list? #:where list? table?)]
           ))
+
+(require data/gvector
+         "ops.rkt"
+         "../sanitizers.rkt"
+         (for-syntax syntax/parse)
+         "types.rkt")
 
 ;; CONSTANTS
 (define default-gvector-length 100)
@@ -20,29 +30,31 @@
 (define (valid-table-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun
-           (string-append "Valid names for tables contain letters, numbers, and the underscore (or the _ symbol). Nothing else.~n"
+           (string-append "Valid names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
                           "\tYou provided: ~a" name))))
 
 (define (valid-field-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun
-           (string-append "Valid column names for tables contain letters, numbers, and the underscore (or the _ symbol). Nothing else.~n"
+           (string-append "Valid column names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
                           "\tYou provided: ~a" name))))
 ;; PURPOSE
 ;; Creates a table structure. Makes sure the name conforms
 ;; to SQL naming conventions, so that we can save to an SQLite file.
 (define (create-table name)
-  (valid-table-name? 'create-table name)
-  (table name (make-gvector)))
+  (define name-string (~a name))
+  (valid-table-name? 'create-table name-string)
+  (table name-string (make-gvector)))
 
 ;; PURPOSE
 ;; Create a table that only contains numeric data. Saves having to specify everything.
 (define (create-numeric-table name fields)
+  (define field-strings (map ~a fields))
   (valid-table-name? 'create-numeric-table name)
-  (for ([f fields])
+  (for ([f field-strings])
     (valid-field-name? 'create-numeric-table f))
   (let ([T (create-table (format "~a" name))])
-    (for ([col (map (λ (f) (format "~a" f)) fields)])
+    (for ([col (map (λ (f) (format "~a" f)) field-strings)])
       (add-series T (create-series col number-sanitizer)))
     T))
 
@@ -50,14 +62,15 @@
   ;; FIXME Check to see that a series with this name does
   ;; not already exist.
   ;; ADDITION May want a replace-series interface.
-  (gvector-add! (table-serieses T) S))
+  (gvector-add! (table-serieses T) S)
+  T)
                            
 ;; FIXME For now, we're consuming lists. It would be nice
 ;; to consume vectors and... whatever else might come in.
 (define (create-series name sanitizer
                        #:values [values empty])
   (define sanitized (sanitizer values))
-  (define gv (list->gvector values))
+  (define gv (list->gvector sanitized))
   (series name sanitizer gv))
 
 ;; Insert value into a series in a table.
@@ -95,22 +108,21 @@
        )]
     ))
 
-(define-syntax (select stx)
-  (syntax-parse stx
-    [(s (~alt (~seq #:column cols:id)
-              (~once (~seq #:from T))) ...)
-     #`(let ([tn (table-name T)])
-         (unless (table? T)
-           (error 'select "Not a table: [ ~a ]" T))
-         (define table-name
-           (apply string-append
-                  (add-between (map (λ (o) (format "~a" o))
-                                    (cons tn (quote (cols ...)))) "-")))
-         (define newT (create-table table-name))
-         (for ([c (quote (cols ...))])
-           (define s (get-series-by-name T (format "~a" c)))
-           (add-series newT s))
-         newT)]))
+
+(define (select #:columns cols #:from T)
+  (let ([tn (table-name T)])
+    (unless (table? T)
+      (error 'select "Not a table: [ ~a ]" T))
+    (define table-name
+      (apply string-append
+             (add-between (map (λ (o) (format "~a" o))
+                               (cons tn cols)) "-")))
+    (define newT (create-table table-name))
+    (for ([c cols])
+      (define s (get-series-by-name T (format "~a" c)))
+      (add-series newT s))
+    newT))
+
 
 (define (parse-query Q h row)
   (match Q
@@ -125,107 +137,35 @@
        #`(#,op #,plhs #,prhs))]
     ))
     
+(define (sieve T #:using cols #:where Q)
+  (define newT (create-table (format "sieve-~a" (table-name T))))
+  (define col-ndx-map (make-hash))
+  ;; This gives me the index for a given column name into the
+  ;; full row of the source table.
+  (for ([c (map string->symbol (for/list ([s (table-serieses T)]) (series-name s)))]
+        [ndx (range (gvector-count (table-serieses T)))])
+    (hash-set! col-ndx-map c ndx))
 
-;; FIXME
-;; These should be thin wrappers around functions. Just enough
-;; here to do the quoting, then pull it out to a function.
-;; This will require rethinking things as a functional interface,
-;; and then wrapping the language around it.
-(define-syntax (sieve stx)
-  (syntax-parse stx
-    [(s T
-        (~alt (~seq #:using cols:id)
-              (~once (~seq #:where Q:expr))) ...)
-        
-     #`(let ()
-         (define newT (create-table (format "sieve-~a" (table-name T))))
-         (define col-ndx-map (make-hash))
-         ;; This gives me the index for a given column name into the
-         ;; full row of the source table.
-         (for ([c (map string->symbol (for/list ([s (table-serieses T)]) (series-name s)))]
-               [ndx (range (gvector-count (table-serieses T)))])
-           (hash-set! col-ndx-map c ndx))
+  ;; Now, go through each row.
+  (define keep '())
+  (for ([row (get-rows T)])
+    (define newQ (parse-query Q col-ndx-map row))
+    ;; (printf "newQ: ~a~n" newQ)
+    (when (eval newQ)
+      ;; (printf "Keeping: ~a~n" row)
+      (set! keep (cons row keep)))
+    )
 
-         ;; Now, go through each row.
-         (define keep '())
-         (for ([row (get-rows T)])
-           (define newQ (parse-query (quasiquote Q) col-ndx-map row))
-           ;; (printf "newQ: ~a~n" newQ)
-           (when (eval newQ)
-             ;; (printf "Keeping: ~a~n" row)
-             (set! keep (cons row keep)))
-           )
-
-         ;; (printf "Kept: ~a~n" keep)
-         ;; Add the kept data to the newT
-         (for ([c (quote (cols ...))]
-               [ndx (length (quote (cols ...)))]
-               )
-           (define s (get-series-by-name T (format "~a" c)))
-           (add-series newT (create-series (series-name s)
-                                           (series-sanitizer s)
-                                           #:values
-                                           (map (λ (r) (list-ref r ndx)) keep)))
-           )
-         newT
-         )]))
-         
-(module+ test
-  (require rackunit)
-
-  ;; Create a table with two series.
-  (define baconT (create-table "bacons"))
-
-  (define stripsS (create-series "strips" number-sanitizer
-                                 #:values (map (λ (n) n) (range 5))))
-  (define streaksS (create-series "streaks" number-sanitizer
-                                  #:values (map (λ (n) n) (range 5 10))))
-  (add-series baconT stripsS)
-  (add-series baconT streaksS)
-  (insert baconT '(3 5))
-  ;; Could also be
-  ;; (insert baconT 3 5)
-
-  ;; TEST
-  ;; Does the select statement return a new table containing the
-  ;; correct data?
-  (define test-1
-    (let ()
-      (define T (create-table "bacons-streaks"))
-      (add-series T (create-series "streaks" number-sanitizer
-                                   #:values (append (range 5 10) (list 5))))
-      T))
-  (define select-1
-    (select #:from baconT
-            #:column streaks
-            ))
-  ;; Should be a deep equality test.
-  (check-equal? test-1 select-1)
-
-  ;; TEST
-  ;; Does get-rows return the rows of the table?
-  (check-equal? #((0 5) (1 6) (2 7) (3 8) (4 9) (3 5))
-                (get-rows baconT))
-
-  ;; TEST
-  ;; Does sieve return the properly filtered data?
-  (define test-2
-    (let ()
-      (define T (create-table "big-bacons"))
-      (add-series T (create-series "strips" number-sanitizer
-                                   #:values '(1 0)))
-      (add-series T (create-series "streaks" number-sanitizer
-                                   #:values '(6 5)))
-      T))   
-  (define sieved-2
-    (rename-table
-     (sieve baconT
-            #:using strips
-            #:using streaks
-            #:where (and (> streaks 3) (< strips 2))
-            
-            )
-     "big-bacons"))
-  (check-equal? test-2 sieved-2)
-  (save sieved-2)
+  ;; (printf "Kept: ~a~n" keep)
+  ;; Add the kept data to the newT
+  (for ([c cols]
+        [ndx (length cols)]
+        )
+    (define s (get-series-by-name T (format "~a" c)))
+    (add-series newT (create-series (series-name s)
+                                    (series-sanitizer s)
+                                    #:values
+                                    (map (λ (r) (list-ref r ndx)) keep)))
+    )
+  newT
   )

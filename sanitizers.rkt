@@ -1,10 +1,46 @@
 #lang racket
 
 (provide (contract-out
-          [number-sanitizer       (-> list? (list/c number?))]
-          [integer-sanitizer      (-> list? (list/c integer?))]
-          [string-sanitizer       (-> list? (list/c string?))]
+          [number-sanitizer             (-> list? (listof number?))]
+          [integer-sanitizer            (-> list? (listof integer?))]
+          [string-sanitizer             (-> list? (listof string?))]
+          [make-number-sanitizer        (-> number? (-> list? (listof number?)))]
+          [make-datetime-sanitizer      (-> string? (-> list? (listof datetime?)))]
           ))
+
+(require gregor)
+
+(define (make-number-sanitizer default-value)
+  (define (inner-sanitizer lon)
+    (define sanitized
+      (for/list ([ndx  (length lon)]
+                 [elem lon])
+        (cond
+          [(number? elem) elem]
+          [(boolean? elem) (if elem 1 0)]
+          [(and (string? elem) (string->number elem))
+           (string->number elem)]
+          [(not (number? elem)) default-value]
+          [else default-value]
+          )))
+    sanitized)
+  inner-sanitizer)
+
+(define (make-datetime-sanitizer pattern)
+  (define (inner-datetime-sanitizer los)
+    (define sanitized
+      (for/list ([ndx (length los)]
+                 [elem los])
+        (cond
+          [(with-handlers ([exn? (λ (e) (raise e) false)]) (parse-datetime elem pattern))
+           (parse-datetime elem pattern)]
+          [else
+           (error 'datetime-sanitizer "Date poorly formed [ ~a ] at index [ ~a ]~n\t~a"
+                  elem ndx)
+           ])))
+    sanitized)
+  inner-datetime-sanitizer)
+      
 
 ;; PURPOSE
 ;; This sanitizer attempts to turn everything into numbers.
