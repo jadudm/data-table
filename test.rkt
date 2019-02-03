@@ -2,6 +2,8 @@
 
 (require "main.rkt"
          "private/types.rkt"
+         "formats/sheets.rkt"
+         "sanitizers.rkt"
          data/gvector
          rackunit)
 
@@ -106,12 +108,35 @@
      )))
 
 
+(define sheets-tests
+  (test-suite
+   "Testing Google Sheets import"
+   (let ()
+     (define test-url "https://docs.google.com/spreadsheets/d/e/2PACX-1vQUfHoMQYItWKbZHz2MbpxhiqMCvwb85D7zAJ9VPS_92nDjrm3BqZmpi9G138svgwUz6d0ZH15pPy_F/pub?output=csv")
+     
+     (define fetched
+       (with-handlers ([exn? (λ (e) false)])
+         (sheet->table "Testing" test-url
+                       #:sanitizers
+                       (list string-sanitizer
+                             number-sanitizer
+                             string-sanitizer))))
+     (define test-table
+       (table
+        "Testing"
+        (gvector
+         (series "Name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
+         (series "Age" number-sanitizer (gvector 42 9 5))
+         (series "Flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
+     (check-equal? fetched test-table))))
+
 (require rackunit/text-ui)
 
 (define all-suites
   (list creation-tests
-                     insert-tests
-                     select-tests))
+        insert-tests
+        select-tests
+        sheets-tests))
 
 (for ([suite all-suites])
   (run-tests suite))
