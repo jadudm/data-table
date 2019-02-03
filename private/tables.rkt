@@ -162,10 +162,14 @@
         [ndx (length cols)]
         )
     (define s (get-series-by-name T (format "~a" c)))
+    ;; (printf "Sieved: ~a~n" s)
     (add-series newT (create-series (series-name s)
                                     (series-sanitizer s)
                                     #:values
-                                    (map (λ (r) (list-ref r ndx)) keep)))
+                                    (map (λ (r) (list-ref r (hash-ref col-ndx-map
+                                                                      (string->symbol
+                                                                       (series-name s)))))
+                                         (reverse keep))))
     )
   newT
   )

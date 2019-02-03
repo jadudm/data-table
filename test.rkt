@@ -3,9 +3,11 @@
 (require "main.rkt"
          "private/types.rkt"
          "formats/sheets.rkt"
+         "formats/mysql.rkt"
          "sanitizers.rkt"
          data/gvector
-         rackunit)
+         rackunit
+         db)
 
 (define (create-bacon-table)
   (define baconT (create-table "bacons"))
@@ -71,7 +73,8 @@
              "streaks" number-sanitizer
              #:values (append (range 5 10) (list 5))))
          T))
-     
+
+     ;; (printf "Running select-1~n")
      (define select-1
        (select #:from baconT
                #:column streaks
@@ -130,13 +133,35 @@
          (series "Flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
      (check-equal? fetched test-table))))
 
+(define mysql-tests
+  (test-suite
+   "Testing MySQL import"
+   (let ()
+     (with-handlers ([exn? (λ (e) true)])
+       (define conn
+         (mysql-connect
+          #:database   "network_v3"
+          #:user       "root"
+          #:password   "root"
+          #:server     "localhost"
+          #:port       8889
+          ))
+       
+       (define T (read-sql conn "error_quotients"))
+       (define newT (sieve T #:using watwin #:where (> watwin 0)))
+       (check-equal? (table-count T) 555)
+       (check-equal? (table-count newT) 537)))))
+     
+
 (require rackunit/text-ui)
 
 (define all-suites
   (list creation-tests
         insert-tests
         select-tests
-        sheets-tests))
+        sheets-tests
+        mysql-tests
+        ))
 
 (for ([suite all-suites])
   (run-tests suite))

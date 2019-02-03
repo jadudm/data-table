@@ -15,7 +15,10 @@
              [t:add-series               add-series]
              [s:number-sanitizer         number-sanitizer]
              [t:insert                   insert]
+             [t:select                   λ:select]
+             [t:sieve                    λ:sieve]
              [o:get-rows                 get-rows]
+             [o:get-column               get-column]
              [o:rename-table             rename-table]
              )
  create-numeric-table
@@ -36,7 +39,8 @@
   (syntax-parse stx
     [(s (~alt (~seq #:column cols:id)
               (~once (~seq #:from T))) ...)
-     #`(t:select #:columns (quote (cols ...)) #:from T)
+     #`(let ()
+         (t:select #:columns (quasiquote (cols ...)) #:from T))
      ]))
 
 (define-syntax (sieve stx)
@@ -44,5 +48,6 @@
     [(s T
         (~alt (~seq #:using cols:id)
               (~once (~seq #:where Q:expr))) ...)
-     #`(t:sieve T #:using (quote (cols ...)) #:where (quasiquote Q))
+     #`(let ()
+         (t:sieve T #:using (quasiquote (cols ...)) #:where (quasiquote Q)))
      ]))
