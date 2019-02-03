@@ -57,7 +57,7 @@
                                      (clean-name (table-name T))
                                      field-names
                                      (add-between (map ->str row) ",")))
-    ;;(printf "is: ~a~n" insert-statement)
+    (printf "is: ~s~n" insert-statement)
     (query-exec conn insert-statement))
   (disconnect conn))
   
