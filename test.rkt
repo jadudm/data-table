@@ -94,9 +94,9 @@
        (let ()
          (define T (create-table "big-bacons"))
          (add-series T (create-series "strips" number-sanitizer
-                                      #:values '(1 0)))
+                                      #:values '(0 1)))
          (add-series T (create-series "streaks" number-sanitizer
-                                      #:values '(6 5)))
+                                      #:values '(5 6)))
          T))   
      (define sieved-2
        (rename-table
