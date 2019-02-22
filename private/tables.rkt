@@ -140,6 +140,7 @@
 (define (sieve T #:using cols #:where Q)
   (define newT (create-table (format "sieve-~a" (table-name T))))
   (define col-ndx-map (make-hash))
+
   ;; This gives me the index for a given column name into the
   ;; full row of the source table.
   (for ([c (map string->symbol (for/list ([s (table-serieses T)]) (series-name s)))]
@@ -158,10 +159,10 @@
 
   ;; (printf "Kept: ~a~n" keep)
   ;; Add the kept data to the newT
-  (for ([c cols]
-        [ndx (length cols)]
+  (for ([s (table-serieses T)]
+        [ndx (gvector-count (table-serieses T))]
         )
-    (define s (get-series-by-name T (format "~a" c)))
+    ;;(define s (get-series-by-name T (format "~a" c)))
     ;; (printf "Sieved: ~a~n" s)
     (add-series newT (create-series (series-name s)
                                     (series-sanitizer s)

@@ -128,10 +128,26 @@
        (table
         "Testing"
         (gvector
-         (series "Name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
-         (series "Age" number-sanitizer (gvector 42 9 5))
-         (series "Flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
-     (check-equal? fetched test-table))))
+         (series "name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
+         (series "age" number-sanitizer (gvector 42 9 5))
+         (series "flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
+     (check-equal? fetched test-table)
+
+     ;; Lets test a sieve operation on this table.
+     (define sieved
+       (sieve fetched
+              #:using age
+              #:where (> age 6)))
+
+     (define test-sieve-table
+       (table "sieve-Testing"
+              (gvector
+               (series "name"   string-sanitizer (gvector "Matt" "Matthew"))
+               (series "age"    number-sanitizer (gvector 42 9))
+               (series "flavor" string-sanitizer (gvector "Chocolate" "Mint")))))
+     (check-equal? sieved test-sieve-table)
+ 
+     )))
 
 (define mysql-tests
   (test-suite
