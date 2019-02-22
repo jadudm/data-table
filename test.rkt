@@ -1,7 +1,6 @@
 #lang racket
 
 (require "main.rkt"
-        
          data/gvector
          rackunit
          db)
@@ -112,15 +111,26 @@
   (test-suite
    "Testing Google Sheets import"
    (let ()
-     (define test-url "https://docs.google.com/spreadsheets/d/e/2PACX-1vQUfHoMQYItWKbZHz2MbpxhiqMCvwb85D7zAJ9VPS_92nDjrm3BqZmpi9G138svgwUz6d0ZH15pPy_F/pub?output=csv")
+     (define test-url-1 "https://docs.google.com/spreadsheets/d/e/2PACX-1vQUfHoMQYItWKbZHz2MbpxhiqMCvwb85D7zAJ9VPS_92nDjrm3BqZmpi9G138svgwUz6d0ZH15pPy_F/pub?output=csv")
+
+     (define test-url-2 "http://bit.ly/2E2qZoI")
      
-     (define fetched
+     (define fetched-1
        (with-handlers ([exn? (λ (e) false)])
-         (sheet->table "Testing" test-url
+         (sheet->table "Testing" test-url-1
                        #:sanitizers
                        (list string-sanitizer
                              number-sanitizer
                              string-sanitizer))))
+
+     (define fetched-2
+       (with-handlers ([exn? (λ (e) false)])
+         (sheet->table "Testing" test-url-2
+                       #:sanitizers
+                       (list string-sanitizer
+                             number-sanitizer
+                             string-sanitizer))))
+     
      (define test-table
        (table
         "Testing"
@@ -128,11 +138,14 @@
          (series "name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
          (series "age" number-sanitizer (gvector 42 9 5))
          (series "flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
-     (check-equal? fetched test-table)
+
+     (check-equal? fetched-1 test-table)
+
+     (check-equal? fetched-2 test-table)
 
      ;; Lets test a sieve operation on this table.
      (define sieved
-       (sieve fetched
+       (sieve fetched-1
               #:using age
               #:where (> age 6)))
 
@@ -142,6 +155,7 @@
                (series "name"   string-sanitizer (gvector "Matt" "Matthew"))
                (series "age"    number-sanitizer (gvector 42 9))
                (series "flavor" string-sanitizer (gvector "Chocolate" "Mint")))))
+     
      (check-equal? sieved test-sieve-table)
  
      )))
@@ -164,19 +178,40 @@
        (define newT (sieve T #:using watwin #:where (> watwin 0)))
        (check-equal? (table-count T) 555)
        (check-equal? (table-count newT) 537)))))
-     
+
+(define pull-tests
+  (test-suite
+   "Testing (pull ...)"
+   (let () 
+     (define T
+       (table
+        "Testing"
+        (gvector
+         (series "name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
+         (series "age" number-sanitizer (gvector 42 9 5))
+         (series "flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
+
+     (check-equal? (pull T "name") (vector "Matt" "Matthew" "Simon"))
+     (check-equal? (pull T "age")  (vector 42 9 5))
+     )))
 
 (require rackunit/text-ui)
 
 (define all-suites
-  (list creation-tests
-        insert-tests
-        select-tests
-        sheets-tests
-        mysql-tests
+  (list (list 'creation creation-tests)
+        ;; Operations
+        (list 'insert insert-tests)
+        (list 'select select-tests)
+        (list 'pull   pull-tests)
+        ;; Formats
+        (list 'sheets sheets-tests)
+        (list 'mysql mysql-tests)
         ))
 
-(for ([suite all-suites])
+(for ([name-suite all-suites])
+  (define name  (first name-suite))
+  (define suite (second name-suite))
+  (printf "~a: ~n" name)
   (run-tests suite))
 
 
