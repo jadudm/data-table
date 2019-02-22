@@ -6,7 +6,6 @@
 (require (for-syntax syntax/parse))
 (require (prefix-in t: "tables.rkt")
          (prefix-in s: "sanitizers.rkt")
-         (prefix-in o: "private/ops.rkt")
          (prefix-in op: "operations/select.rkt")
          (prefix-in op: "operations/sieve.rkt")
          )
@@ -19,9 +18,10 @@
              [t:insert                   insert]
              [op:select                  λ:select]
              [op:sieve                   λ:sieve]
-             [o:get-rows                 get-rows]
-             [o:get-column               get-column]
-             [o:rename-table             rename-table]
+             [t:get-rows                 get-rows]
+             [t:get-column               get-column]
+             [t:rename-table             rename-table]
+             [t:table-count              table-count]
              )
  create-numeric-table
  select
@@ -42,7 +42,7 @@
     [(s (~alt (~seq #:column cols:id)
               (~once (~seq #:from T))) ...)
      #`(let ()
-         (t:select #:columns (quasiquote (cols ...)) #:from T))
+         (op:select #:columns (quasiquote (cols ...)) #:from T))
      ]))
 
 (define-syntax (sieve stx)
@@ -51,5 +51,5 @@
         (~alt (~seq #:using cols:id)
               (~once (~seq #:where Q:expr))) ...)
      #`(let ()
-         (t:sieve T #:using (quasiquote (cols ...)) #:where (quasiquote Q)))
+         (op:sieve T #:using (quasiquote (cols ...)) #:where (quasiquote Q)))
      ]))

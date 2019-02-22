@@ -1,8 +1,9 @@
 #lang racket
 
 (require db)
-(require "../private/types.rkt"
-         "../private/ops.rkt")
+(require "../types.rkt"
+         "../tables.rkt"
+         )
 
 (provide save)
 

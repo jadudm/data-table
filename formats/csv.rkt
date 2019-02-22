@@ -3,9 +3,8 @@
 (provide read-csv csv-port->table)
 
 (require csv-reading
-         "../private/types.rkt"
-         "../private/ops.rkt"
-         "../private/tables.rkt"
+         "../types.rkt"
+         "../tables.rkt"
          "../sanitizers.rkt")
 
 (define default-csv-reader

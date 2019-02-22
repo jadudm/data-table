@@ -1,6 +1,8 @@
 #lang racket
 
-(require "../tables.rkt")
+(require data/gvector
+         "../types.rkt"
+         "../tables.rkt")
 
 (provide (contract-out
           [sieve                  (-> table? #:using list? #:where list? table?)]

@@ -6,8 +6,7 @@
          "formats/sheets.rkt"
          "formats/sqlite.rkt"
          "sanitizers.rkt"
-         "private/types.rkt"
-         "private/ops.rkt"
+         "types.rkt"
          )
 
 (provide (all-from-out "syntax-wrappers.rkt"
@@ -16,6 +15,5 @@
                        "formats/sheets.rkt"
                        "formats/sqlite.rkt"                       
                        "sanitizers.rkt"
-                       "private/types.rkt"
-                       "private/ops.rkt"
+                       "types.rkt"
                        ))

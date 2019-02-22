@@ -1,6 +1,7 @@
 #lang racket
 
-(require "../tables.rkt")
+(require "../types.rkt"
+         "../tables.rkt")
 
 (provide (contract-out
           [select                 (-> #:columns list? #:from table? table?)]
