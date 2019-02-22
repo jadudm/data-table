@@ -1,9 +1,7 @@
 #lang racket
 
 (require db)
-(require "../types.rkt"
-         (prefix-in t: "../tables.rkt")
-         "../syntax-wrappers.rkt"
+(require "../tables.rkt"
          "../sanitizers.rkt")
 
 (provide read-sql)
