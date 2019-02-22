@@ -1,53 +1,150 @@
 #lang racket
 
-;; This file provides the interface. That means the implementation
-;; lives in private/, and the syntactic wrapper lives here.
 
-(require (for-syntax syntax/parse))
-(require (prefix-in t: "private/tables.rkt")
-         (prefix-in s: "sanitizers.rkt")
-         (prefix-in o: "private/ops.rkt")
-         )
+(provide (contract-out
+          [create-table          (-> (or/c symbol? string?) any/c)]
+          [create-numeric-table  (-> (or/c symbol? string?) (list/c (or/c symbol? string?)) any)]
+          [create-series         (-> (or/c symbol? string?)
+                                     (-> any/c any)
+                                     #:values list?
+                                     series?)]
+          [add-series            (-> table? series? table?)]
+          [insert                (case->
+                                  (-> table? series? list? any)
+                                  (-> table? list? any)
+                                  (-> table? series? any)
+                                  (-> table? #:rest any/c any))]
 
-(provide
- (rename-out [t:create-table             create-table]
-             [t:create-series            create-series]
-             [t:add-series               add-series]
-             [s:number-sanitizer         number-sanitizer]
-             [t:insert                   insert]
-             [t:select                   λ:select]
-             [t:sieve                    λ:sieve]
-             [o:get-rows                 get-rows]
-             [o:get-column               get-column]
-             [o:rename-table             rename-table]
-             )
- create-numeric-table
- select
- sieve
- )
+          [rename-table            (-> table? string? table?)]
+          [get-series-by-name      (-> table? string? series?)]
+          [get-rows                (-> table? vector?)]
+          [get-column              (-> table? string? vector?)]
+          [get-series-names        (-> table? (listof string?))]
+          [table-count             (-> table? number?)]
+          ))
 
-;; Where should the sqlite interface live?
+(require data/gvector
+         "sanitizers.rkt"
+         "types.rkt")
 
-(define-syntax (create-numeric-table stx)
-  (syntax-parse stx
-    [(cnt name fields ...)
-     #`(t:create-numeric-table (quote name)
-                               (quote (fields ...)))]))
+;; CONSTANTS
+(define default-gvector-length 100)
+
+(define (valid-table-name? fun name)
+  (unless (regexp-match "[a-zA-Z0-9_]" name)
+    (error fun
+           (string-append "Valid names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
+                          "\tYou provided: ~a" name))))
+
+(define (valid-field-name? fun name)
+  (unless (regexp-match "[a-zA-Z0-9_]" name)
+    (error fun
+           (string-append "Valid column names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
+                          "\tYou provided: ~a" name))))
+;; PURPOSE
+;; Creates a table structure. Makes sure the name conforms
+;; to SQL naming conventions, so that we can save to an SQLite file.
+(define (create-table name)
+  (define name-string (~a name))
+  (valid-table-name? 'create-table name-string)
+  (table name-string (make-gvector)))
+
+;; PURPOSE
+;; Create a table that only contains numeric data. Saves having to specify everything.
+(define (create-numeric-table name fields)
+  (define field-strings (map ~a fields))
+  (valid-table-name? 'create-numeric-table name)
+  (for ([f field-strings])
+    (valid-field-name? 'create-numeric-table f))
+  (let ([T (create-table (format "~a" name))])
+    (for ([col (map (λ (f) (format "~a" f)) field-strings)])
+      (add-series T (create-series col number-sanitizer)))
+    T))
+
+(define (add-series T S)
+  ;; FIXME Check to see that a series with this name does
+  ;; not already exist.
+  ;; ADDITION May want a replace-series interface.
+  (gvector-add! (table-serieses T) S)
+  T)
+                           
+;; FIXME For now, we're consuming lists. It would be nice
+;; to consume vectors and... whatever else might come in.
+(define (create-series name sanitizer
+                       #:values [values empty])
+  (define sanitized (sanitizer values))
+  (define gv (list->gvector sanitized))
+  (series name sanitizer gv))
+
+;; Insert value into a series in a table.
+(define insert
+  (match-lambda*
+    [(list (? table? T) (? series? S) (? list? v*))
+     (for ([v v*])
+       (insert T S v))]
+    
+    [(list (? table? T) (? series? S) v)
+     (define the-series (get-series-by-name T (series-name S)))
+     (define sanitized ((series-sanitizer the-series) (list v)))
+     ;; (display sanitized) (newline)
+     (for ([v sanitized])
+       (gvector-add! (series-values the-series) v))]
+
+    ;; As a list
+    [(list (? table? T) (? list? v*))
+     (apply insert (cons T v*))]
+    
+    ;; Insert values... must be same as number of serieses in the T
+    [(list (? table? T) v* ...)
+     (cond
+       [(not (= (gvector-count (table-serieses T)) (length v*)))
+        (error 'insert "Need to insert [ ~a ] values to match columns [ ~a ]~nYou tried to insert [ ~a ]"
+               (gvector-count (table-serieses T))
+               (apply string-append
+                      (add-between (for/list ([s (table-serieses T)]) (series-name s)) ", "))
+               v*
+               )]
+       [else
+        (for ([s (table-serieses T)]
+              [v v*])
+          (insert T s v))]
+       )]
+    ))
 
 
-(define-syntax (select stx)
-  (syntax-parse stx
-    [(s (~alt (~seq #:column cols:id)
-              (~once (~seq #:from T))) ...)
-     #`(let ()
-         (t:select #:columns (quasiquote (cols ...)) #:from T))
-     ]))
+(define (rename-table T name)
+  (table name (table-serieses T)))
 
-(define-syntax (sieve stx)
-  (syntax-parse stx
-    [(s T
-        (~alt (~seq #:using cols:id)
-              (~once (~seq #:where Q:expr))) ...)
-     #`(let ()
-         (t:sieve T #:using (quasiquote (cols ...)) #:where (quasiquote Q)))
-     ]))
+(define (table-count T)
+  (gvector-count (series-values (gvector-ref (table-serieses T) 0))))
+
+(define (round-to-nearest v n)
+  (* (add1 (modulo v n)) n ))
+
+(define (get-series-by-name T sname)
+  (define (finder gv ndx)
+    (cond
+      [(>= ndx (gvector-count gv))
+       (error 'get-series-by-name "No series with name [ ~a ]" sname)]
+      [(equal? (series-name (gvector-ref gv ndx)) sname)
+       ;;(printf "Found:~n~a~n"  (gvector-ref gv ndx))
+       (gvector-ref gv ndx)]
+      [else
+       (finder gv (add1 ndx))]))
+  (finder (table-serieses T) 0))
+
+(define (get-series-names T)
+  (map series-name (gvector->list (table-serieses T))))
+
+(define (get-rows T)
+  (define lor empty)
+  ;; This sets up the indicies to march down the vectors
+  (for/vector ([n (gvector-count (series-values (gvector-ref (table-serieses T) 0)))])
+    ;; This is so I can go through each of the serieses
+    (for/list ([s (table-serieses T)])
+      (gvector-ref (series-values s) n))))
+
+(define (get-column T col)
+  (define sbn (get-series-by-name T col))
+  ;; (printf "Requested ~a~nGot: ~a~n" col sbn)
+  (gvector->vector (series-values sbn)))

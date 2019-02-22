@@ -1,6 +1,6 @@
 #lang racket
 
-(require "tables.rkt"
+(require "syntax-wrappers.rkt"
          ;; Formats
          "formats/mysql.rkt"
          "formats/sheets.rkt"
@@ -10,7 +10,7 @@
          "private/ops.rkt"
          )
 
-(provide (all-from-out "tables.rkt"
+(provide (all-from-out "syntax-wrappers.rkt"
                        ;; Formats
                        "formats/mysql.rkt"
                        "formats/sheets.rkt"
