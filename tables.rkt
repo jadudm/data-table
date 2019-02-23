@@ -1,8 +1,12 @@
 #lang racket
 
-
 (provide (contract-out
-          [create-table          (-> (or/c symbol? string?) any/c)]
+          [create-table          (case-> (-> (or/c symbol? string?)
+                                             any/c)
+                                         (-> (or/c symbol? string?)
+                                             (cons/c (listof (or/c symbol? string?))
+                                                     (listof any/c))
+                                             any/c))]
           [create-numeric-table  (-> (or/c symbol? string?) (list/c (or/c symbol? string?)) any)]
           [create-series         (-> (or/c symbol? string?)
                                      (-> any/c any)
@@ -44,10 +48,29 @@
 ;; PURPOSE
 ;; Creates a table structure. Makes sure the name conforms
 ;; to SQL naming conventions, so that we can save to an SQLite file.
-(define (create-table name)
-  (define name-string (~a name))
-  (valid-table-name? 'create-table name-string)
-  (table name-string (make-gvector)))
+(define create-table
+  (match-lambda*
+    [(list (? string? name))
+     (define name-string (~a name))
+     (valid-table-name? 'create-table name-string)
+     (table name-string (make-gvector))]
+    ;; Matches "a-table" '((a b c) (1 2 3) (4 5 6) ...)
+    [(list (? string? name)
+           (list (list (? symbol? s*) ...)
+                 (list data-row* ...) ...))
+     (define name-string (~a name))
+     (valid-table-name? 'create-table name-string)
+     (define T (table name-string (make-gvector)))
+     (for ([name s*]
+           [ndx  (range (length s*))])
+       (define data (map (λ (row)
+                           (list-ref row ndx)) data-row*))
+       (define S (create-series (~a name)
+                                (guess-sanitizer data)
+                                #:values data))
+       (add-series T S))
+     T]
+    ))
 
 ;; PURPOSE
 ;; Create a table that only contains numeric data. Saves having to specify everything.

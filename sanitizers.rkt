@@ -4,11 +4,36 @@
           [number-sanitizer             (-> list? (listof number?))]
           [integer-sanitizer            (-> list? (listof integer?))]
           [string-sanitizer             (-> list? (listof string?))]
+          [guess-sanitizer              (-> (or/c list? gvector?) (-> list? any/c))]
           [make-number-sanitizer        (-> number? (-> list? (listof number?)))]
           [make-datetime-sanitizer      (-> string? (-> list? (listof datetime?)))]
           ))
 
-(require gregor)
+(require gregor
+         data/gvector)
+
+
+
+;; By allowing a 90% threshold, it means that we
+;; recognize when a column is *mostly* something, but some of the
+;; data is bad. Therefore, we will die later in the table construction process.
+(define (mostly pred? ls)
+  (define sum (apply + (map (λ (b) (if b 1 0)) (map pred? ls))))
+  (> (/ sum (length ls)) 0.9))
+      
+(define (guess-sanitizer data)
+  (cond
+    [(list? data)
+     (define sanitizer identity-sanitizer)
+     (for ([(k pred?) predicatesH])
+       (when (mostly pred? data)
+         (set! sanitizer (hash-ref sanitizersH k))))
+     sanitizer]
+    [(gvector? data)
+     (guess-sanitizer (gvector->list data))]
+    [else
+     (error 'guess-sanitizer "Bad input data format: ~a" data)]
+    ))
 
 (define (make-number-sanitizer default-value)
   (define (inner-sanitizer lon)
@@ -41,6 +66,10 @@
     sanitized)
   inner-datetime-sanitizer)
       
+;; PURPOSE
+;; This sanitizer passes everything through.
+(define (identity-sanitizer ls)
+  ls)
 
 ;; PURPOSE
 ;; This sanitizer attempts to turn everything into numbers.
@@ -83,3 +112,15 @@
 ;; This should always work.
 (define (string-sanitizer ls)
   (map (λ (o) (format "~a" o)) ls))
+
+
+(define predicatesH
+  (make-hash `((number?   .   ,number?)
+               (integer?  .   ,integer?)
+               (string?   .   ,string?)
+               (boolean?  .   ,boolean?))))
+
+(define sanitizersH
+  (make-hash `((number?   .   ,number-sanitizer)
+               (integer?  .   ,integer-sanitizer)
+               (string?   .   ,string-sanitizer))))

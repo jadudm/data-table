@@ -8,9 +8,9 @@
 (define (create-bacon-table)
   (define baconT (create-table "bacons"))
   
-  (define stripsS (create-series "strips" number-sanitizer
+  (define stripsS (create-series "strips" integer-sanitizer
                                  #:values (map (λ (n) n) (range 5))))
-  (define streaksS (create-series "streaks" number-sanitizer
+  (define streaksS (create-series "streaks" integer-sanitizer
                                   #:values (map (λ (n) n) (range 5 10))))
   (add-series baconT stripsS)
   (add-series baconT streaksS)
@@ -22,14 +22,24 @@
    (let ()
      ;; Create a table with two series.
      (define baconT (create-bacon-table))
+     (define otherBaconT (create-table "bacons"
+                                       '((strips streaks)
+                                         (0 5)
+                                         (1 6)
+                                         (2 7)
+                                         (3 8)
+                                         (4 9))))
+     
      (define comparison-table
        (table "bacons"
               (gvector
-               (series "strips"  number-sanitizer (gvector 0 1 2 3 4))
-               (series "streaks" number-sanitizer (gvector 5 6 7 8 9))
+               (series "strips"  integer-sanitizer (gvector 0 1 2 3 4))
+               (series "streaks" integer-sanitizer (gvector 5 6 7 8 9))
                )))
      
-     (check-equal? comparison-table baconT))))
+     (check-equal? comparison-table baconT)
+     (check-equal? baconT otherBaconT)
+     )))
 
 (define insert-tests
   (test-suite
@@ -40,8 +50,8 @@
      (define comparison-table
        (table "bacons"
               (gvector
-               (series "strips"  number-sanitizer (gvector 0 1 2 3 4 3))
-               (series "streaks" number-sanitizer (gvector 5 6 7 8 9 5))
+               (series "strips"  integer-sanitizer (gvector 0 1 2 3 4 3))
+               (series "streaks" integer-sanitizer (gvector 5 6 7 8 9 5))
                )))
 
      (insert baconT '(3 5))
@@ -66,7 +76,7 @@
          
          (add-series
           T (create-series
-             "streaks" number-sanitizer
+             "streaks" integer-sanitizer
              #:values (append (range 5 10) (list 5))))
          T))
 
@@ -89,9 +99,9 @@
      (define test-2
        (let ()
          (define T (create-table "big-bacons"))
-         (add-series T (create-series "strips" number-sanitizer
+         (add-series T (create-series "strips" integer-sanitizer
                                       #:values '(0 1)))
-         (add-series T (create-series "streaks" number-sanitizer
+         (add-series T (create-series "streaks" integer-sanitizer
                                       #:values '(5 6)))
          T))   
      (define sieved-2
