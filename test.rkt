@@ -184,23 +184,8 @@
 
 (define mysql-tests
   (test-suite
-   "Testing MySQL import"
+   "Testing SQL import"
    (let ()
-     (with-handlers ([exn? (λ (e) true)])
-       (define conn
-         (mysql-connect
-          #:database   "network_v3"
-          #:user       "root"
-          #:password   "root"
-          #:server     "localhost"
-          #:port       8889
-          ))
-       
-       (define T (read-sql conn "error_quotients"))
-       (define newT (sieve T #:using watwin #:where (> watwin 0)))
-       (check-equal? (table-count T) 555)
-       (check-equal? (table-count newT) 537))
-
      ;; A public database for testing!
      ;; https://rfam.readthedocs.io/en/latest/database.html
      (with-handlers ([exn? (λ (e) true)])
@@ -210,16 +195,26 @@
           #:server "mysql-rfam-public.ebi.ac.uk"
           #:user "rfamro"
           #:port 4497))
-       (define T (read-sql conn "family"))
+       (define T (read-mysql conn "family"))
        (check-equal? (table-count T) 3016)
 
        (check-equal? (table-count
                       (sieve T
                              #:using number_of_species
                              #:where (< number_of_species 5)))
-                     546)
+                     546)       
        )
      )))
+
+(define sqlite-tests
+  (test-suite
+   "SQLite Tests"
+   (let ()
+         (define conn
+           (sqlite3-connect #:database "1542842183-better-ticket-machine.sqlite"))
+         (define T (read-sqlite conn "error_quotients"))
+         (check-equal? 3 (table-count T)))
+   ))
 
 (define pull-tests
   (test-suite
@@ -246,6 +241,7 @@
    select-tests
    pull-tests
    sheets-tests
-   mysql-tests))
+   mysql-tests
+   sqlite-tests))
 
 (run-tests all-suites)

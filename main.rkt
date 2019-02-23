@@ -22,9 +22,8 @@
          (prefix-in λ: "operations/select.rkt")
          (prefix-in λ: "operations/sieve.rkt")
          ;; Formats
-         "formats/mysql.rkt"
          "formats/sheets.rkt"
-         "formats/sqlite.rkt"
+         "formats/sql.rkt"
          "sanitizers.rkt"
          "types.rkt"
          )
@@ -34,9 +33,8 @@
                        ;; Operations
                        "operations/pull.rkt"
                        ;; Formats
-                       "formats/mysql.rkt"
                        "formats/sheets.rkt"
-                       "formats/sqlite.rkt"                       
+                       "formats/sql.rkt"                       
                        "sanitizers.rkt"
                        "types.rkt"
                        )

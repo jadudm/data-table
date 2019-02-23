@@ -1,67 +1,83 @@
 #lang scribble/manual
 @(require racket)
+@require[@for-label["../main.rkt"
+                    racket db]]
 
 @title{Reading Data}
 
-Data can be read into data-tables from multiple sources.
+Data can be read into @racket[data-table]s from multiple sources.
 
-
+@;{ -------------------------------- read-csv ---------------------------------- }
 @defproc[#:link-target? false
          (read-csv
           [path path-string?]
-          [#:header-row? header-row boolean? false]
-          [#:sanitizers sanitizers (listof procedure?) empty]
+          [#:header-row? header-row boolean? true]
+          [#:sanitizers sanitizers (listof (-> any/c pred?)) empty]
           )
          data-table?]{ 
  Reads in a CSV file, and returns a data table.
 }
 
-A CSV (or comma-separated-values) file is a plain text file that is often formatted as follows:
+@racket[read-csv] takes two keyword arguments. 
 
-@verbatim|{
- index,chickens,eggs,whichfirst
- 0,2,1,0
- 1,3,3,1
- 2,4,2,0
- }|
+@racket[#:header-row?] is used to determine whether the CSV file has a header row; this defaults to @racket[true] if not provided. The header row will be used to set the names of the serieses in the @racket[data-table] that is created from the CSV file.
 
-This example demonstrates a CSV file where this is a header row (which contains the names of the columns in the data file), and all of the values are encoded as integers. It might be data from a research study that investigated chickens, eggs, and which came first. The first column is an index value, the second is how many chickens we found in a study, the third the number of eggs found, and the final column encodes whether the chicken came first as a zero or one, indicating falsiness or truthiness.
-
-Assuming this file is called "chickens.csv", and our code was in the same directory as the CSV file, we would read this into a data-table using the following call to @racket[read-csv]:
+@racket[#:sanitizers] is a list of sanitizers, which are functions from @racket[(listof any/c)] to @racket[(listof A)]. These guarantee the uniformity of the data coming in from the CSV file. For example:
 
 @racketblock[
- (read-csv "chickens.csv" 
+ (read-csv "somefile.csv" 
            #:header-row true
            #:sanitizers (list integer-sanitizer
-                              integer-sanitizer 
-                              integer-sanitizer 
+                              string-sanitizer 
+                              number-sanitizer 
                               integer-sanitizer))
  ]
 
-The call to @racket[read-csv] takes one parameter, which is a path to a file. It then has two optional keyword parameters, which begin with a hash-colon. The first of these indicates whether or not the data file has a header row; not all CSV files do. By default, @racket[read-csv] assumes that there is no header row. The second is a list of @emph{data sanitizers}.
+would read in a CSV file of four columns, guaranteeing that all values in the first column matched the predicate @racket[integer?], the second matches @racket[string?], the third @racket[number?], and the fourth @racket[integer?] again. 
 
-A data sanitizer is a guard; it makes sure that no data is read into the data-table that does not conform to the programmer's expectations. In the above example, we are saying that the four columns of the CSV file---@italic{index}, @italic{chickens}, @italic{eggs}, and @italic{whichfirst}---are all going to be integers. Therefore, we've provided a list of four santizers, each of which is an @racket[integer-sanitizer]. If the CSV file contains anything other than an integer in any of these columns, our attempt to read the data in will fail.
+If no sanitizers are provided, @racket[read-csv] will attempt to @italic{guess} what type each column is. It does this by deciding if the majority of the column conforms to a given type, beginning with the least specific possible type, and concluding with the most specific possible type. If it is not possible to match the type, the @italic{identity-sanitizer} will be used, which takes all data in as-is, possibly as strings. More about sanitizers can be found in @(secref "sanitizers").
 
+@;{ -------------------------------- read-mysql ---------------------------------- }
 @defproc[#:link-target? false
-         (read-sqlite
-          [path path-string?]
-          [#:header-row? header-row boolean? false]
-          [#:sanitizers sanitizers (listof procedure?) empty]
+         (read-mysql
+          [conn connection?]
+          [table string?]
           )
          data-table?]{ 
- Reads in an SQLite file, and returns a data-table.
+ Reads in a table from a MySQL database, and returns a @racket[data-table].
 }
 
-To be implemented.
+Given a connection to a database, @racket[read-mysql] will read a table out of that database into a @racket[data-table]. Data types in the SQL table are mapped by the function @racket[mysql-type->sanitizer]:
 
-@section{Sanitizers}
+@#reader scribble/comment-reader
+@(racketblock 
+(define (mysql-type->sanitizer t)
+  (match t
+    [(regexp "int")    integer-sanitizer]
+    [(regexp "float")  number-sanitizer]
+    [(regexp "double") number-sanitizer]
+    [(regexp "text")   string-sanitizer]
+    [(regexp "varchar") string-sanitizer]
+    ;; FIXME - These are wrong.
+    [(regexp "datetime") identity-sanitizer]
+    [(regexp "timestamp") identity-sanitizer]
+    [else
+     (error 'msyql-type->sanitizer
+            "Cannot find a sanitizer for type [ ~a ]~n"
+            t)]))
+)
 
-The @racket[data-table] library provides a reasonable set of sanitizers for common types of data that you might encounter in a CSV file or database.
+All integer types are mapped to @racket[integer?], all other numeric types are treated as @racket[number?], and all textual types become @racket[string?]s. Columns that are MySQL @racket[datetime] or @racket[timestamp] are mapped onto the @racket[sql-timestamp] structure from the @racket[db] module.
 
-@itemlist[
- @item{@italic{integer-sanitizer}: Guarantees that all numbers in the column are integers, as defined by the Racket predicate @racket[integer?].}
- @item{@italic{number-sanitizer}: Guarantees that all elements in the column are numbers, as defined by the Racket predicate @racket[number?].}
- @item{@italic{string-sanitizer}: Coerces everything in the column to a string. Anything that cannot be coerced will cause an error.}
- ]
-  
-  
+Once a MySQL table is loaded into a @racket[data-table], all information about its original column types is lost; import and export of MySQL tables is not idempotent at this time.
+
+@;{ -------------------------------- read-sqlite ---------------------------------- }
+@defproc[#:link-target? false
+         (read-csv
+          [path path-string?]
+          [#:header-row? header-row boolean? true]
+          [#:sanitizers sanitizers (listof (-> any/c pred?)) empty]
+          )
+         data-table?]{ 
+ Reads in a CSV file, and returns a data table.
+}

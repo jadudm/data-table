@@ -1,23 +1,21 @@
 #lang scribble/manual
+@require[@for-label["../main.rkt"
+                    racket/base]]
+ 
+@;{ https://www.writethedocs.org/guide/writing/beginners-guide-to-docs/ 
+  https://superuser.com/questions/445907/monitor-a-folder-osx-for-file-changes-then-run-a-bash-script
+  https://superuser.com/questions/431624/watch-filesystem-in-real-time-on-os-x-and-ubuntu
+}
 
-@;{ https://www.writethedocs.org/guide/writing/beginners-guide-to-docs/ }
+@title[]{Documentation Overview}
 
-@title{Introduction}
+The introduction provides a very brief overview of the @racket[data-table] library.
 
+In the Reference sections, the functions and structures provided by the @racket[data-table] library are described. These are concise descriptions of what the provided code in the library does.
 
-You might have some data stored in:
+In the Guide, common use-cases for those functions are explored. 
 
-
-@itemlist[
- @item{A Google Spreadsheet}
- @item{A comma-separated-values (CSV) file}
- @item{A MySQL database}
- @item{An SQLite database}
- ]
-
-and want to manipulate that data in Racket. When you're done, you might want to save it back out to one of those places. Or, you might want to quickly plot something in the data. The data-table library supports (FIXME will support -- 2019-02-22) those operations.
-
-data-table is inspired and informed by data frames (from the R statistical language), as well as Pyret's data tables.
+If you are new to the @racket[data-table] library, you may find starting with the guide to be helpful for orienting you towards what is possible. If you are familiar with @racket[data-table], then you are probably interested in the reference.
 
 @section{What Problem does data-table Solve?}
 
@@ -34,12 +32,7 @@ The data-table library is intended to provide an interface to tabular data that 
 (define test-url "http://bit.ly/2E2qZoI")
  
 ; Fetch the URL, and turn it into a table named "Testing"
-(define fetched
-  (sheet->table "Testing" test-url
-                #:sanitizers
-                (list string-sanitizer
-                      number-sanitizer
-                      string-sanitizer)))
+(define fetched (sheet->table "Testing" test-url))
  
 ; Select all of the rows where the "age" column is greater than 6.
 (sieve fetched
