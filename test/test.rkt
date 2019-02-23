@@ -210,11 +210,17 @@
   (test-suite
    "SQLite Tests"
    (let ()
-         (define conn
-           (sqlite3-connect #:database "1542842183-better-ticket-machine.sqlite"))
-         (define T (read-sqlite conn "error_quotients"))
-         (check-equal? 3 (table-count T)))
-   ))
+     (define conn
+       (sqlite3-connect #:database "sqlite-test-file.sqlite"))
+     (define T1 (read-sqlite conn "error_quotients"))
+     (define T2 (read-sqlite conn "watwin_pairs"))
+     (check-equal? (table-count T1) 3)
+     (check-equal? (table-count T2) 51)
+     (check-equal? (table-count (sieve T2
+                                       #:using id
+                                       #:where (> id 2707309142)))
+                   10)
+     )))
 
 (define pull-tests
   (test-suite
@@ -230,6 +236,14 @@
 
      (check-equal? (pull T "name") (vector "Matt" "Matthew" "Simon"))
      (check-equal? (pull T "age")  (vector 42 9 5))
+
+     (let ()
+       (define conn
+         (sqlite3-connect #:database "sqlite-test-file.sqlite"))
+       (define T1 (read-sqlite conn "error_quotients"))
+       (check-equal? (pull T1 "pairs_count")
+                     (list->vector (map string->number '("54" "41" "29"))))
+       )
      )))
 
 (require rackunit/text-ui)
