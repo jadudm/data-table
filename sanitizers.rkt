@@ -17,9 +17,13 @@
 ;; By allowing a 90% threshold, it means that we
 ;; recognize when a column is *mostly* something, but some of the
 ;; data is bad. Therefore, we will die later in the table construction process.
-(define (mostly pred? ls)
+(define (mostly threshold pred? ls)
   (define sum (apply + (map (λ (b) (if b 1 0)) (map pred? ls))))
-  (> (/ sum (length ls)) 0.9))
+  (> (/ sum (length ls)) threshold))
+
+(define (entirely pred? ls)
+  (define sum (apply + (map (λ (b) (if b 1 0)) (map pred? ls))))
+  (= (/ sum (length ls)) 1))
       
 (define (guess-sanitizer data)
   (cond
@@ -27,7 +31,7 @@
      (define sanitizer identity-sanitizer)
      (for ([p predicates]
            [s sanitizers])
-       (when (mostly (second p) data)
+       (when (entirely (second p) data)
          (set! sanitizer (second s))))
      sanitizer]
     [(gvector? data)
