@@ -5,7 +5,7 @@
 
 @title{Reading Data}
 
-Data can be read into @racket[data-table]s from multiple sources.
+Data can be read into @racket[table]s from multiple sources.
 
 @;{ -------------------------------- read-csv ---------------------------------- }
 @defproc[#:link-target? false
@@ -14,7 +14,7 @@ Data can be read into @racket[data-table]s from multiple sources.
           [#:header-row? header-row boolean? true]
           [#:sanitizers sanitizers (listof (-> any/c pred?)) empty]
           )
-         data-table?]{ 
+         table?]{ 
  Reads in a CSV file, and returns a data table.
 }
 
@@ -43,41 +43,42 @@ If no sanitizers are provided, @racket[read-csv] will attempt to @italic{guess} 
           [conn connection?]
           [table string?]
           )
-         data-table?]{ 
- Reads in a table from a MySQL database, and returns a @racket[data-table].
+         table?]{ 
+ Reads in a table from a MySQL database, and returns a @racket[table].
 }
 
-Given a connection to a database, @racket[read-mysql] will read a table out of that database into a @racket[data-table]. Data types in the SQL table are mapped by the function @racket[mysql-type->sanitizer]:
+Given a connection to a database, @racket[read-mysql] will read a table out of that database into a @racket[data-table]. Data types in the SQL table are mapped as follows:
 
-@#reader scribble/comment-reader
-@(racketblock 
-(define (mysql-type->sanitizer t)
-  (match t
-    [(regexp "int")    integer-sanitizer]
-    [(regexp "float")  number-sanitizer]
-    [(regexp "double") number-sanitizer]
-    [(regexp "text")   string-sanitizer]
-    [(regexp "varchar") string-sanitizer]
-    ;; FIXME - These are wrong.
-    [(regexp "datetime") identity-sanitizer]
-    [(regexp "timestamp") identity-sanitizer]
-    [else
-     (error 'msyql-type->sanitizer
-            "Cannot find a sanitizer for type [ ~a ]~n"
-            t)]))
-)
+@(require "../formats/sql.rkt")
+@tabular[#:sep @hspace[10]
+  @(cons 
+    (list @bold{MySQL Type} @bold{Sanitizer})
+    (table->scribble lookup-table:mysql)
+    )]
 
-All integer types are mapped to @racket[integer?], all other numeric types are treated as @racket[number?], and all textual types become @racket[string?]s. Columns that are MySQL @racket[datetime] or @racket[timestamp] are mapped onto the @racket[sql-timestamp] structure from the @racket[db] module.
-
-Once a MySQL table is loaded into a @racket[data-table], all information about its original column types is lost; import and export of MySQL tables is not idempotent at this time.
+Once a MySQL table is loaded into a @racket[table], all information about its original column types is lost; import and export of MySQL tables is not idempotent at this time.
 
 @;{ -------------------------------- read-sqlite ---------------------------------- }
 @defproc[#:link-target? false
-         (read-csv
-          [path path-string?]
-          [#:header-row? header-row boolean? true]
-          [#:sanitizers sanitizers (listof (-> any/c pred?)) empty]
+         (read-sqlite
+          [conn connection?]
+          [table string?]
           )
-         data-table?]{ 
- Reads in a CSV file, and returns a data table.
+         table?]{ 
+ Read in a table from an SQLite database, and returns a @racket[table].
 }
+
+Like the MySQL importer, @racket[read-sqlite] takes a connection to an SQLite3 database and a table name, and returns the contents of that database table as a @racket[table].
+
+Types are mapped using the following sanitizers:
+
+@tabular[#:sep @hspace[10]
+  @(cons 
+    (list @bold{SQLite Type} @bold{Sanitizer})
+    (table->scribble lookup-table:sqlite)
+    )]
+    
+Like the MySQL type, it is not possible to precisely preserve column types if a @racket[table] is re-saved to the SQLite format.
+
+
+

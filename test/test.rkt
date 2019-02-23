@@ -1,6 +1,6 @@
 #lang racket
 
-(require "main.rkt"
+(require "../main.rkt"
          data/gvector
          rackunit
          db)

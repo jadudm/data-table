@@ -5,30 +5,46 @@
          "../sanitizers.rkt"
          "sql-util.rkt")
 
-(provide read-mysql read-sqlite)
+(provide read-mysql read-sqlite
+         table->scribble
+         (rename-out
+          [mysql lookup-table:mysql]
+          [sqlite lookup-table:sqlite])
+         )
+
+(define (table->scribble t)
+  (cond
+    [(empty? t) empty]
+    [else
+     (define sanitizer (second (first t)))
+     (append (map (λ (type) (list (format "~a" type)
+                                  (regexp-replace ">" (regexp-replace "#<procedure:" (format "~a" sanitizer) "") "")))
+                  (first (first t)))
+             (table->scribble (rest t)))]))
 
 (define mysql
-  `( (("int" "integer")
+  `( ((integer tinyint smallint mediumint bigint)
       ,integer-sanitizer)
-     (("float" "double")
+     ((real double decimal)
       ,number-sanitizer)
-     (("text"  "varchar")
+     ((varchar text var-string)
       ,string-sanitizer)
-     (("datetime")
+     ((date time datetime)
       ,identity-sanitizer)
-     (("timestamp")
-      ,identity-sanitizer))
+     ((blob)
+      ,identity-sanitizer)
+     )
   )
 
 (define sqlite
-  `( (("integer")
+  `( ((integer)
       ,integer-sanitizer)
-     (("float" "double" "real")
+     ((real)
       ,number-sanitizer)
-     (("text")
+     ((text)
       ,string-sanitizer)
      ;; FIXME: blob should result in bytes?
-     (("blob")
+     ((blob)
       ,identity-sanitizer
      ) )
   )
@@ -41,7 +57,7 @@
          (error 'sql-type->sanitizer
                 "Cannot find a sanitizer for type [ ~a ]~n"
                 t)]
-        [(member (format "~a" t) (first (first table)))
+        [(member (format "~a" t) (map ~a (first (first table))))
          (second (first table))]
         [else
          (helper (rest table) t)]))
