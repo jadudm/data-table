@@ -25,8 +25,8 @@
   (cond
     [(list? data)
      (define sanitizer identity-sanitizer)
-     (for ([p predicatesH]
-           [s sanitizersH])
+     (for ([p predicates]
+           [s sanitizers])
        (when (mostly (second p) data)
          (set! sanitizer (second s))))
      sanitizer]
@@ -115,14 +115,26 @@
   (map (λ (o) (format "~a" o)) ls))
 
 
-(define predicatesH
-  `((string?     ,string?)
+;; WARNING
+;; These need to be in the most general to the most specific order...
+;; This may be a bad idea, but could be fixed by getting rid of the (for ...)
+;; up in (guess-sanitizer ...).
+;;
+;; In the meantime, these get matched one at a time, and at some point,
+;; the last one matched is kept.
+
+(define (any-value? o) true)
+
+(define predicates
+  `((any-value?  ,any-value?)
+    (string?     ,string?)
     (number?     ,(λ (o) (or (number? o)   (and (string? o) (string->number o)))))
     (integer?    ,(λ (o) (or (integer? o)  (and (string? o) (string->number o)))))
     ))
 
-(define sanitizersH
-  `((string?      ,string-sanitizer)
+(define sanitizers
+  `((any-value?   ,identity-sanitizer)
+    (string?      ,string-sanitizer)
     (number?      ,number-sanitizer)
     (integer?     ,integer-sanitizer)
     ))
