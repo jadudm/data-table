@@ -208,20 +208,12 @@
 (require rackunit/text-ui)
 
 (define all-suites
-  (list (list 'creation creation-tests)
-        ;; Operations
-        (list 'insert insert-tests)
-        (list 'select select-tests)
-        (list 'pull   pull-tests)
-        ;; Formats
-        (list 'sheets sheets-tests)
-        (list 'mysql mysql-tests)
-        ))
+  (test-suite
+   "All tests"
+   insert-tests
+   select-tests
+   pull-tests
+   sheets-tests
+   mysql-tests))
 
-(for ([name-suite all-suites])
-  (define name  (first name-suite))
-  (define suite (second name-suite))
-  (printf "~a: ~n" name)
-  (run-tests suite))
-
-
+(run-tests all-suites)

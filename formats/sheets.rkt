@@ -38,25 +38,27 @@
     [else
      (get-new-url (rest los))]))
 
-(define (sheet->table name url
-                      #:sanitizers [sanitizers empty])
-
-  ;; FIXME
-  ;; This feels expensive on large remote data sets.
-  ;; For the optimization bin. Creating a ticket...
-  (define lines
-    (port->lines (get-impure-port (string->url url))))
-  
-  (cond
-    [(check-for-redirect lines)
-     (define new-url (get-new-url lines))
-     ;; Recur on the URL that we looked up in the redirect.
-     (sheet->table name new-url #:sanitizers sanitizers)
-     ]
-    [else
-     (csv-port->table
-      name
-      (get-pure-port (string->url url))
-      #:sanitizers sanitizers
-      )])
-  )
+(require keyword-lambda/keyword-case-lambda)
+(define sheet->table
+  (keyword-case-lambda
+   [(name url #:header-row? [header-row? true] #:sanitizers [sanitizers empty])
+     ;; FIXME
+     ;; This feels expensive on large remote data sets.
+     ;; For the optimization bin. Creating a ticket...
+     (define lines
+       (port->lines (get-impure-port (string->url url))))
+     
+     (cond
+       [(check-for-redirect lines)
+        (define new-url (get-new-url lines))
+        ;; Recur on the URL that we looked up in the redirect.
+        (sheet->table name new-url #:sanitizers sanitizers)
+        ]
+       [else
+        (csv-port->table
+         name
+         (get-pure-port (string->url url))
+         #:header-row? header-row?
+         #:sanitizers sanitizers
+         )])
+     ]))

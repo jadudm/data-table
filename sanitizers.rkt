@@ -25,9 +25,10 @@
   (cond
     [(list? data)
      (define sanitizer identity-sanitizer)
-     (for ([(k pred?) predicatesH])
-       (when (mostly pred? data)
-         (set! sanitizer (hash-ref sanitizersH k))))
+     (for ([p predicatesH]
+           [s sanitizersH])
+       (when (mostly (second p) data)
+         (set! sanitizer (second s))))
      sanitizer]
     [(gvector? data)
      (guess-sanitizer (gvector->list data))]
@@ -115,12 +116,13 @@
 
 
 (define predicatesH
-  (make-hash `((number?   .   ,number?)
-               (integer?  .   ,integer?)
-               (string?   .   ,string?)
-               (boolean?  .   ,boolean?))))
+  `((string?     ,string?)
+    (number?     ,(λ (o) (or (number? o)   (and (string? o) (string->number o)))))
+    (integer?    ,(λ (o) (or (integer? o)  (and (string? o) (string->number o)))))
+    ))
 
 (define sanitizersH
-  (make-hash `((number?   .   ,number-sanitizer)
-               (integer?  .   ,integer-sanitizer)
-               (string?   .   ,string-sanitizer))))
+  `((string?      ,string-sanitizer)
+    (number?      ,number-sanitizer)
+    (integer?     ,integer-sanitizer)
+    ))

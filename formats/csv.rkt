@@ -75,13 +75,9 @@
     (default-csv-reader port))
 
   ;; Read the headers
-  (define headers (next-row))
-  (unless (= (length headers)
-             (length sanitizers))
-    (error 'read-csv "Unequal columns/sanitizers [cols ~a] [sanitizers ~a]"
-           (length headers)
-           (length sanitizers)))
-              
+  (define headers empty)
+  (when header-row?
+    (set! headers (next-row)))
   
   ;; Read the CSV into separate lists. The create-series function
   ;; currently expects lists.
@@ -91,6 +87,25 @@
         (hash-set! seriesH ndx
                    (snoc (list-ref row ndx) (hash-ref seriesH ndx empty))))
       (loop (next-row))))
+
+  ;; Give us something in the header row...
+  (when (not header-row?)
+    (set! headers
+          (map (λ (ndx) (format "row-~a" ndx))
+               (range (length (hash-ref seriesH 0))))))
+
+  (when (not (empty? sanitizers))
+    (unless (= (length headers)
+               (length sanitizers))
+      (error 'read-csv "Unequal columns/sanitizers [cols ~a] [sanitizers ~a]"
+             (length headers)
+             (length sanitizers))))
+
+  ;; Now, did we get handed sanitizers, or do we have to guess?
+  (when (empty? sanitizers)
+    (set! sanitizers (map (λ (ndx)
+                            (guess-sanitizer (hash-ref seriesH ndx)))
+                          (range (length (hash-ref seriesH 0))))))
 
   ;; Now, each CSV column is in the hash. 
   ;; Each needs a series, and those will be based on the
@@ -102,6 +117,6 @@
     (add-series T new-series)
     )
   ;; Return the new table.
-  T)
-  
+  T
+  )
   
