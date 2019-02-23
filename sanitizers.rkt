@@ -1,16 +1,19 @@
 #lang racket
 
 (provide (contract-out
-          [number-sanitizer             (-> list? (listof number?))]
-          [integer-sanitizer            (-> list? (listof integer?))]
-          [string-sanitizer             (-> list? (listof string?))]
+          [identity-sanitizer           (-> list? list?)]
+          [number-sanitizer             (-> list? (listof (or/c number? sql-null?)))]
+          [integer-sanitizer            (-> list? (listof (or/c integer? sql-null?)))]
+          [string-sanitizer             (-> list? (listof (or/c string? sql-null?)))]
           [guess-sanitizer              (-> (or/c list? gvector?) (-> list? any/c))]
           [make-number-sanitizer        (-> number? (-> list? (listof number?)))]
           [make-datetime-sanitizer      (-> string? (-> list? (listof datetime?)))]
           ))
 
-(require gregor
-         data/gvector)
+(require db
+         data/gvector
+         gregor
+         )
 
 
 
@@ -90,6 +93,10 @@
         [(boolean? elem) (if elem 1 0)]
         [(and (string? elem) (string->number elem))
          (string->number elem)]
+        ;; FIXME
+        ;; Should I allow SQL NULL to remain?
+        ;; This will only show up when importing MySQL tables.
+        [(sql-null? elem) elem]
         [(not (number? elem))
          (error 'number-sanitizer "Element at index [ ~a ] is not a number: [ ~a ]" ndx elem)]
         )))
@@ -105,10 +112,14 @@
     (for/list ([ndx  (length lon)]
                [elem lon])
       (cond
-        [(number? elem) elem]
+        [(integer? elem) elem]
         [(boolean? elem) (if elem 1 0)]
         [(and (string? elem) (string->number elem))
          (exact-round (string->number elem))]
+        ;; FIXME
+        ;; Should I allow SQL NULL to remain?
+        ;; This will only show up when importing MySQL tables.
+        [(sql-null? elem) elem]
         [(not (and (number? elem) (integer? elem)))
          (error 'integer-sanitizer "Element at index [ ~a ] is not an integer: [ ~a ]" ndx elem)]
         )))
@@ -116,7 +127,13 @@
 
 ;; This should always work.
 (define (string-sanitizer ls)
-  (map (λ (o) (format "~a" o)) ls))
+  (for/list ([elem ls])
+    (cond
+      ;; FIXME
+        ;; Should I allow SQL NULL to remain?
+        ;; This will only show up when importing MySQL tables.
+      [(sql-null? elem) elem]
+      [else (format "~a" elem)])))
 
 
 ;; WARNING

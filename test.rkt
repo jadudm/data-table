@@ -124,13 +124,17 @@
      (define test-url-1 "https://docs.google.com/spreadsheets/d/e/2PACX-1vQUfHoMQYItWKbZHz2MbpxhiqMCvwb85D7zAJ9VPS_92nDjrm3BqZmpi9G138svgwUz6d0ZH15pPy_F/pub?output=csv")
 
      (define test-url-2 "http://bit.ly/2E2qZoI")
-     
+
+     ;; The sanitizers should always be as specific as possible.
+     ;; In part, this is because the simple form of sheet->table
+     ;; uses (guess-sanitizer ...), which will always choose the
+     ;; most specific/refined sanitizer possible for a column.
      (define fetched-1
        (with-handlers ([exn? (λ (e) false)])
          (sheet->table "Testing" test-url-1
                        #:sanitizers
                        (list string-sanitizer
-                             number-sanitizer
+                             integer-sanitizer
                              string-sanitizer))))
 
      (define fetched-2
@@ -138,20 +142,28 @@
          (sheet->table "Testing" test-url-2
                        #:sanitizers
                        (list string-sanitizer
-                             number-sanitizer
+                             integer-sanitizer
                              string-sanitizer))))
+
+     (define fetched-3
+       (with-handlers ([exn? (λ (e) false)])
+         (sheet->table "Testing" test-url-2)))
      
      (define test-table
        (table
         "Testing"
         (gvector
-         (series "name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
-         (series "age" number-sanitizer (gvector 42 9 5))
+         (series "name"   string-sanitizer (gvector "Matt" "Matthew" "Simon"))
+         (series "age"    integer-sanitizer (gvector 42 9 5))
          (series "flavor" string-sanitizer (gvector "Chocolate" "Mint" "Berry")))))
 
      (check-equal? fetched-1 test-table)
 
      (check-equal? fetched-2 test-table)
+
+     (check-equal? fetched-3 fetched-2)
+     ;; Unnecessary, by transitive property.
+     (check-equal? fetched-3 test-table)
 
      ;; Lets test a sieve operation on this table.
      (define sieved
@@ -163,7 +175,7 @@
        (table "sieve-Testing"
               (gvector
                (series "name"   string-sanitizer (gvector "Matt" "Matthew"))
-               (series "age"    number-sanitizer (gvector 42 9))
+               (series "age"    integer-sanitizer (gvector 42 9))
                (series "flavor" string-sanitizer (gvector "Chocolate" "Mint")))))
      
      (check-equal? sieved test-sieve-table)
@@ -187,7 +199,27 @@
        (define T (read-sql conn "error_quotients"))
        (define newT (sieve T #:using watwin #:where (> watwin 0)))
        (check-equal? (table-count T) 555)
-       (check-equal? (table-count newT) 537)))))
+       (check-equal? (table-count newT) 537))
+
+     ;; A public database for testing!
+     ;; https://rfam.readthedocs.io/en/latest/database.html
+     (with-handlers ([exn? (λ (e) true)])
+       (define conn
+         (mysql-connect
+          #:database "Rfam"
+          #:server "mysql-rfam-public.ebi.ac.uk"
+          #:user "rfamro"
+          #:port 4497))
+       (define T (read-sql conn "family"))
+       (check-equal? (table-count T) 3016)
+
+       (check-equal? (table-count
+                      (sieve T
+                             #:using number_of_species
+                             #:where (< number_of_species 5)))
+                     546)
+       )
+     )))
 
 (define pull-tests
   (test-suite
