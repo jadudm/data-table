@@ -37,12 +37,14 @@
 ;; CONSTANTS
 (define default-gvector-length 100)
 
+;; FIXME : These should probably be exceptions.
 (define (valid-table-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun
            (string-append "Valid names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
                           "\tYou provided: ~a" name))))
 
+;; FIXME : These should probably be exceptions.
 (define (valid-field-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun

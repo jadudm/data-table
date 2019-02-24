@@ -82,9 +82,11 @@
 
      ;; (printf "Running select-1~n")
      (define select-1
-       (select #:from baconT
+       #;(select #:from baconT
                #:column streaks
-               ))
+               )
+       (select baconT "streaks")
+       )
      ;; Should be a deep equality test.
      (check-equal? test-1 select-1)
 
@@ -260,5 +262,15 @@
 
 (run-tests all-suites)
 
-(define cities-csv "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQHMOiYSxSh_BvIVQ6c3mG82kF47lPcuVihv5bV9Ufq_XyRl8DWDau2Og-l1duYoMj9yvFI2wRu7HL/pub?output=csv")
+(define cities-csv "http://bit.ly/cities-csv")
 (define T (sheet->table "Cities" cities-csv))
+(require plot)
+(define (scatterplot T col1 col2)
+  (points
+   (vector->list (vector-map vector (pull T col1) (pull T col2)))
+   #:label (data-table-name T)))
+
+(plot (list (scatterplot T "LonD" "LatD")
+            (hrule 44))
+      #:title (data-table-name T))
+

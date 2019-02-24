@@ -9,7 +9,7 @@
          )
 
 (provide create-numeric-table
-         select
+         (rename-out [op:select select])
          sieve
          )
 
@@ -22,7 +22,7 @@
                                (quote (fields ...)))]))
 
 
-(define-syntax (select stx)
+#;(define-syntax (select stx)
   (syntax-parse stx
     [(s (~alt (~seq #:column cols:id)
               (~once (~seq #:from T))) ...)

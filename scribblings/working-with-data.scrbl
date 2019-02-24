@@ -12,11 +12,9 @@
                    
 @title{Working With Data}
 
-The @racket[data-table] library provides functions and syntactic forms for manipulating data tables in a variety of ways. In this section, we borrow the visual language of the @(hyperlink "https://github.com/rstudio/cheatsheets/blob/master/data-transformation.pdf" "dplyr") library for depicting these operations.
+The @racket[data-table] library provides functions and syntactic forms for manipulating data tables in a variety of ways. Throughout this section, we will work with a Google Spreadsheet that contains 128 records, each with 10 fields (or, it has 10 columns and 128 rows). The spreadsheet describes the locations of cities in North America. This data comes from @(hyperlink "https://people.sc.fsu.edu/~jburkardt/data/csv/csv.html" "here"), and was made available under the GPL. The spreadsheet is @(hyperlink cities-gsheet "viewable online").
 
 @(define cities-gsheet "http://bit.ly/cities-gsheet")
-
-Throughout this section, we will work with a Google Spreadsheet that contains 128 records, each with 10 fields (or, it has 10 columns and 128 rows). The spreadsheet describes the locations of cities in North America. This data comes from @(hyperlink "https://people.sc.fsu.edu/~jburkardt/data/csv/csv.html" "here"), and was made available under the GPL. The spreadsheet is @(hyperlink cities-gsheet "viewable online").
 
 Or, if you just want a sense for what it looks like, it looks a bit like this:
 
@@ -24,17 +22,16 @@ Or, if you just want a sense for what it looks like, it looks a bit like this:
   @(image #:scale 0.25 "images/cities-sheet.png")
 }
 
+Also, this section borrows the visual language of the @(hyperlink "https://github.com/rstudio/cheatsheets/blob/master/data-transformation.pdf" "dplyr") library for depicting operations on data-tables.
 
 @(define cities-csv "http://bit.ly/cities-csv")
 
 @;{ -------------------------------- select ---------------------------------- }
 @defproc[#:link-target? false
          (select
-          [#:column column-name identifier?] 
-          ...
-          [#:from table-name identifier?]
-          )
-         table?]{ 
+           [table data-table?]
+           [column-name string?] ...)
+         data-table?]{ 
  Selects one or more columns from a table, returning a new table containing only those columns.
 }
 
@@ -52,22 +49,11 @@ Given the @(hyperlink cities-gsheet "spreadsheet of city locations"), we might w
 (define cities-csv "http://bit.ly/cities-csv")
 (define T (sheet->table "Cities" cities-csv))
 (define cities-statesT
-  (select #:column City
-          #:column State
-          #:from T))
+  (select T "City" "State"))
 (table-column-count T)
 (table-column-count cities-statesT)
 ]
 
-The order of the parameters does not matter. The following @racket[select] expression below is the same as the one above, even thought the table is specified first.
-
-@examples[#:eval the-eval
-(table-column-count 
-  (select #:from T
-          #:column City
-          #:column State
-          ))
-]
 
 @;{ -------------------------------- sieve ---------------------------------- }
 @defproc[#:link-target? false
