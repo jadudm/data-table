@@ -4,12 +4,12 @@
          "../tables.rkt")
 
 (provide (contract-out
-          [select                 (-> #:columns list? #:from table? table?)]
+          [select                 (-> #:columns list? #:from data-table? data-table?)]
           ))
 
 (define (select #:columns cols #:from T)
-  (let ([tn (table-name T)])
-    (unless (table? T)
+  (let ([tn (data-table-name T)])
+    (unless (data-table? T)
       (error 'select "Not a table: [ ~a ]" T))
     (define table-name
       (apply string-append

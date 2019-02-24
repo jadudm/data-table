@@ -105,7 +105,7 @@
   (when (empty? sanitizers)
     (set! sanitizers (map (λ (ndx)
                             (guess-sanitizer (hash-ref seriesH ndx)))
-                          (range (length (hash-ref seriesH 0))))))
+                          (range (length headers)))))
 
   ;; Now, each CSV column is in the hash. 
   ;; Each needs a series, and those will be based on the

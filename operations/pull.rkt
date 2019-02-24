@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (contract-out
-          [pull           (-> table? string? vector?)]))
+          [pull           (-> data-table? string? vector?)]))
 
 (require data/gvector
          "../types.rkt"
@@ -17,4 +17,4 @@
      (pull-helper (rest s*) name)]))
 
 (define (pull T s)
-  (pull-helper (gvector->list (table-serieses T)) s))
+  (pull-helper (gvector->list (data-table-serieses T)) s))

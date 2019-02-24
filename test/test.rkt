@@ -31,7 +31,7 @@
                                          (4 9))))
      
      (define comparison-table
-       (table "bacons"
+       (data-table "bacons"
               (gvector
                (series "strips"  integer-sanitizer (gvector 0 1 2 3 4))
                (series "streaks" integer-sanitizer (gvector 5 6 7 8 9))
@@ -48,7 +48,7 @@
      (define baconT (create-bacon-table))
      
      (define comparison-table
-       (table "bacons"
+       (data-table "bacons"
               (gvector
                (series "strips"  integer-sanitizer (gvector 0 1 2 3 4 3))
                (series "streaks" integer-sanitizer (gvector 5 6 7 8 9 5))
@@ -150,7 +150,7 @@
          (sheet->table "Testing" test-url-2)))
      
      (define test-table
-       (table
+       (data-table
         "Testing"
         (gvector
          (series "name"   string-sanitizer (gvector "Matt" "Matthew" "Simon"))
@@ -172,7 +172,7 @@
               #:where (> age 6)))
 
      (define test-sieve-table
-       (table "sieve-Testing"
+       (data-table "sieve-Testing"
               (gvector
                (series "name"   string-sanitizer (gvector "Matt" "Matthew"))
                (series "age"    integer-sanitizer (gvector 42 9))
@@ -227,7 +227,7 @@
    "Testing (pull ...)"
    (let () 
      (define T
-       (table
+       (data-table
         "Testing"
         (gvector
          (series "name" string-sanitizer (gvector "Matt" "Matthew" "Simon"))
@@ -259,3 +259,6 @@
    sqlite-tests))
 
 (run-tests all-suites)
+
+(define cities-csv "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQHMOiYSxSh_BvIVQ6c3mG82kF47lPcuVihv5bV9Ufq_XyRl8DWDau2Og-l1duYoMj9yvFI2wRu7HL/pub?output=csv")
+(define T (sheet->table "Cities" cities-csv))

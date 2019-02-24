@@ -12,19 +12,19 @@
                                      (-> any/c any)
                                      #:values list?
                                      series?)]
-          [add-series            (-> table? series? table?)]
+          [add-series            (-> data-table? series? data-table?)]
           [insert                (case->
-                                  (-> table? series? list? any)
-                                  (-> table? list? any)
-                                  (-> table? series? any)
-                                  (-> table? #:rest any/c any))]
+                                  (-> data-table? series? list? any)
+                                  (-> data-table? list? any)
+                                  (-> data-table? series? any)
+                                  (-> data-table? #:rest any/c any))]
 
-          [rename-table            (-> table? string? table?)]
-          [get-series-by-name      (-> table? string? series?)]
-          [get-rows                (-> table? vector?)]
-          [get-column              (-> table? string? vector?)]
-          [get-series-names        (-> table? (listof string?))]
-          [table-count             (-> table? number?)]
+          [rename-table            (-> data-table? string? data-table?)]
+          [get-series-by-name      (-> data-table? string? series?)]
+          [get-rows                (-> data-table? vector?)]
+          [get-column              (-> data-table? string? vector?)]
+          [get-series-names        (-> data-table? (listof string?))]
+          [table-count             (-> data-table? number?)]
           ))
 
 (require data/gvector
@@ -53,14 +53,14 @@
     [(list (? string? name))
      (define name-string (~a name))
      (valid-table-name? 'create-table name-string)
-     (table name-string (make-gvector))]
+     (data-table name-string (make-gvector))]
     ;; Matches "a-table" '((a b c) (1 2 3) (4 5 6) ...)
     [(list (? string? name)
            (list (list (? symbol? s*) ...)
                  (list data-row* ...) ...))
      (define name-string (~a name))
      (valid-table-name? 'create-table name-string)
-     (define T (table name-string (make-gvector)))
+     (define T (data-table name-string (make-gvector)))
      (for ([name s*]
            [ndx  (range (length s*))])
        (define data (map (λ (row)
@@ -88,7 +88,7 @@
   ;; FIXME Check to see that a series with this name does
   ;; not already exist.
   ;; ADDITION May want a replace-series interface.
-  (gvector-add! (table-serieses T) S)
+  (gvector-add! (data-table-serieses T) S)
   T)
                            
 ;; FIXME For now, we're consuming lists. It would be nice
@@ -102,11 +102,11 @@
 ;; Insert value into a series in a table.
 (define insert
   (match-lambda*
-    [(list (? table? T) (? series? S) (? list? v*))
+    [(list (? data-table? T) (? series? S) (? list? v*))
      (for ([v v*])
        (insert T S v))]
     
-    [(list (? table? T) (? series? S) v)
+    [(list (? data-table? T) (? series? S) v)
      (define the-series (get-series-by-name T (series-name S)))
      (define sanitized ((series-sanitizer the-series) (list v)))
      ;; (display sanitized) (newline)
@@ -114,21 +114,21 @@
        (gvector-add! (series-values the-series) v))]
 
     ;; As a list
-    [(list (? table? T) (? list? v*))
+    [(list (? data-table? T) (? list? v*))
      (apply insert (cons T v*))]
     
     ;; Insert values... must be same as number of serieses in the T
-    [(list (? table? T) v* ...)
+    [(list (? data-table? T) v* ...)
      (cond
-       [(not (= (gvector-count (table-serieses T)) (length v*)))
+       [(not (= (gvector-count (data-table-serieses T)) (length v*)))
         (error 'insert "Need to insert [ ~a ] values to match columns [ ~a ]~nYou tried to insert [ ~a ]"
-               (gvector-count (table-serieses T))
+               (gvector-count (data-table-serieses T))
                (apply string-append
-                      (add-between (for/list ([s (table-serieses T)]) (series-name s)) ", "))
+                      (add-between (for/list ([s (data-table-serieses T)]) (series-name s)) ", "))
                v*
                )]
        [else
-        (for ([s (table-serieses T)]
+        (for ([s (data-table-serieses T)]
               [v v*])
           (insert T s v))]
        )]
@@ -136,10 +136,10 @@
 
 
 (define (rename-table T name)
-  (table name (table-serieses T)))
+  (data-table name (data-table-serieses T)))
 
 (define (table-count T)
-  (gvector-count (series-values (gvector-ref (table-serieses T) 0))))
+  (gvector-count (series-values (gvector-ref (data-table-serieses T) 0))))
 
 (define (round-to-nearest v n)
   (* (add1 (modulo v n)) n ))
@@ -154,17 +154,17 @@
        (gvector-ref gv ndx)]
       [else
        (finder gv (add1 ndx))]))
-  (finder (table-serieses T) 0))
+  (finder (data-table-serieses T) 0))
 
 (define (get-series-names T)
-  (map series-name (gvector->list (table-serieses T))))
+  (map series-name (gvector->list (data-table-serieses T))))
 
 (define (get-rows T)
   (define lor empty)
   ;; This sets up the indicies to march down the vectors
-  (for/vector ([n (gvector-count (series-values (gvector-ref (table-serieses T) 0)))])
+  (for/vector ([n (gvector-count (series-values (gvector-ref (data-table-serieses T) 0)))])
     ;; This is so I can go through each of the serieses
-    (for/list ([s (table-serieses T)])
+    (for/list ([s (data-table-serieses T)])
       (gvector-ref (series-values s) n))))
 
 (define (get-column T col)

@@ -13,7 +13,7 @@
                                #:name-column number?
                                #:type-column number?
                                #:sql-type->sanitizer procedure?)
-                              table?)
+                              data-table?)
                          ]
           
           ))

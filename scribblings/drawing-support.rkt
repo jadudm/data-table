@@ -2,7 +2,8 @@
 (require racket/draw)
 
 (provide draw-select
-         draw-sieve)
+         draw-sieve
+         draw-pull)
 
 (define W 600)
 (define H 300)
@@ -82,6 +83,30 @@
   (draw-row dc 7 3 1 "firebrick")
 
   (draw-text dc "select" 4 2)
+  (send target save-file path 'png)
+
+  ""
+  )
+
+(define (draw-pull path)
+  (define target (make-bitmap W H))
+  (define dc (new bitmap-dc% [bitmap target]))
+  (send dc set-pen "white" 3 'solid)
+  (draw-row dc 0 0 3 "dimgray")
+  (draw-row dc 0 1 3 "silver")
+  (draw-row dc 0 2 3 "silver")
+  (draw-row dc 0 3 3 "silver")
+  (draw-col dc 1 0 3 "firebrick")
+
+  (draw-arrow dc 4 2 "gold")
+
+  (send dc set-pen "white" 3 'solid)
+  #;(draw-row dc 7 0 1 "dimgray")
+  (draw-row dc 7 1 1 "firebrick")
+  (draw-row dc 7 2 1 "firebrick")
+  (draw-row dc 7 3 1 "firebrick")
+
+  (draw-text dc "pull" 4 2)
   (send target save-file path 'png)
 
   ""
