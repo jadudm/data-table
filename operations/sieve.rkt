@@ -19,6 +19,8 @@
      (let ([plhs (parse-query lhs h row)]
            [prhs (parse-query rhs h row)])
        #`(#,op #,plhs #,prhs))]
+    [(list op rand ...)
+     #`(#,op #,@(map (λ (r) (parse-query r h row)) rand))]
     ))
     
 (define (sieve T #:using cols #:where Q)

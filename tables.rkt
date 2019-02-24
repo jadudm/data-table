@@ -25,7 +25,10 @@
           [get-column              (-> data-table? string? vector?)]
           [get-series-names        (-> data-table? (listof string?))]
           [table-count             (-> data-table? number?)]
-          ))
+          [table-series-count      (-> data-table? number?)]
+          )
+         (rename-out [table-series-count table-column-count])
+         )
 
 (require data/gvector
          "sanitizers.rkt"
@@ -140,6 +143,10 @@
 
 (define (table-count T)
   (gvector-count (series-values (gvector-ref (data-table-serieses T) 0))))
+
+(define (table-series-count T)
+  (gvector-count (data-table-serieses T)))
+  
 
 (define (round-to-nearest v n)
   (* (add1 (modulo v n)) n ))
