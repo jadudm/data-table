@@ -60,3 +60,40 @@
     )
   newT
   )
+
+;; ----------------------------------------------------------------- 
+;; ----------------------------- TESTS -----------------------------
+;; -----------------------------------------------------------------
+
+(module+ test
+   (require rackunit
+           "../sanitizers.rkt")
+  (define (create-bacon-table)
+    (define baconT (create-table "bacons"))
+  
+    (define stripsS (create-series "strips" integer-sanitizer
+                                   #:values (map (λ (n) n) (range 5))))
+    (define streaksS (create-series "streaks" integer-sanitizer
+                                    #:values (map (λ (n) n) (range 5 10))))
+    (add-series baconT stripsS)
+    (add-series baconT streaksS)
+    baconT)
+  
+  (define testT
+    (let ()
+      (define T (create-table "sieve-bacons"))
+      (add-series
+       T (create-series
+          "strips" integer-sanitizer
+          #:values (range 4 5)))
+      (add-series
+       T (create-series
+          "streaks" integer-sanitizer
+          #:values (range 9 10)))
+      T))
+
+  (define baconT (create-bacon-table))
+  (define sieveT (sieve baconT #:using '(strips) #:where '(> strips 3)))
+  (check-equal? testT sieveT)
+  (check-equal? #((4 9)) (get-rows sieveT))
+  )

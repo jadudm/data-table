@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label["../main.rkt"
+@require[@for-label[data-table
                     racket/base]]
 
 @;{Does this disable caching in Pollen? Yes, it seems to.}
@@ -10,10 +10,11 @@
   (define render-cache-active #f))
 
 @title[]{data-table}
-
-@emph{data-table provides a set of tools for working with tabular data}.
+@author{Matt Jadud}
 
 @defmodule[data-table]
+
+@emph{data-table provides a set of tools for working with tabular data}.
 
 You might have some data stored in:
 

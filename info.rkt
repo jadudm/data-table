@@ -1,6 +1,7 @@
 #lang info
 
 (define collection "data-table")
+(define version "1.0.0")
 
 (define deps '("db"
                "data/gvector"
@@ -11,6 +12,4 @@
                "syntax/parse"
                ))
 
-(define scribblings '(("scribblings/manual.scrbl" 
-                      (multi-page)
-                      )))
+(define scribblings '(("scribblings/manual.scrbl")))
