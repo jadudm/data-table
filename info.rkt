@@ -2,10 +2,15 @@
 
 (define collection "data-table")
 
-(define deps '("csv-reading"
+(define deps '("db"
+               "data/gvector"
+               "csv-reading"
                "gregor"
+               "net/url"
+               "rackunit"
+               "syntax/parse"
                ))
 
-(define scribblings '(("scribblings/data-table.scrbl" 
+(define scribblings '(("scribblings/manual.scrbl" 
                       (multi-page)
                       )))

@@ -1,6 +1,6 @@
 #lang racket
 
-(provide sheet->table)
+(provide read-gsheet)
 
 (require net/url
          "csv.rkt"
@@ -39,7 +39,7 @@
      (get-new-url (rest los))]))
 
 (require keyword-lambda/keyword-case-lambda)
-(define sheet->table
+(define read-gsheet
   (keyword-case-lambda
    [(name url #:header-row? [header-row? true] #:sanitizers [sanitizers empty])
      ;; FIXME
@@ -52,7 +52,7 @@
        [(check-for-redirect lines)
         (define new-url (get-new-url lines))
         ;; Recur on the URL that we looked up in the redirect.
-        (sheet->table name new-url #:sanitizers sanitizers)
+        (read-gsheet name new-url #:sanitizers sanitizers)
         ]
        [else
         (csv-port->table

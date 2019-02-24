@@ -81,12 +81,7 @@
          T))
 
      ;; (printf "Running select-1~n")
-     (define select-1
-       #;(select #:from baconT
-               #:column streaks
-               )
-       (select baconT "streaks")
-       )
+     (define select-1 (select baconT "streaks"))
      ;; Should be a deep equality test.
      (check-equal? test-1 select-1)
 
@@ -133,7 +128,7 @@
      ;; most specific/refined sanitizer possible for a column.
      (define fetched-1
        (with-handlers ([exn? (λ (e) false)])
-         (sheet->table "Testing" test-url-1
+         (read-gsheet "Testing" test-url-1
                        #:sanitizers
                        (list string-sanitizer
                              integer-sanitizer
@@ -141,7 +136,7 @@
 
      (define fetched-2
        (with-handlers ([exn? (λ (e) false)])
-         (sheet->table "Testing" test-url-2
+         (read-gsheet "Testing" test-url-2
                        #:sanitizers
                        (list string-sanitizer
                              integer-sanitizer
@@ -149,7 +144,7 @@
 
      (define fetched-3
        (with-handlers ([exn? (λ (e) false)])
-         (sheet->table "Testing" test-url-2)))
+         (read-gsheet "Testing" test-url-2)))
      
      (define test-table
        (data-table
@@ -246,6 +241,17 @@
        (check-equal? (pull T1 "pairs_count")
                      (list->vector (map string->number '("54" "41" "29"))))
        )
+
+     (let ()
+       (define cities-csv "http://bit.ly/cities-csv")
+       (define T (read-gsheet "Cities" cities-csv))
+       (define EW (pull T "EW"))
+
+       (check-true
+        (andmap (λ (s)
+                  (and (string? s) (equal? s "W")))
+                (vector->list EW)))
+       )
      )))
 
 (require rackunit/text-ui)
@@ -262,6 +268,7 @@
 
 (run-tests all-suites)
 
+#|
 (define cities-csv "http://bit.ly/cities-csv")
 (define T (sheet->table "Cities" cities-csv))
 (require plot)
@@ -274,3 +281,15 @@
             (hrule 44))
       #:title (data-table-name T))
 
+
+
+(define (uniq ls)
+  (cond
+    [(empty? ls) empty]
+    [(member (first ls) (rest ls))
+     (uniq (rest ls))]
+    [else
+     (cons (first ls) (uniq (rest ls)))]))
+
+
+|#
