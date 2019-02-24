@@ -18,7 +18,7 @@ The @racket[data-table] library provides functions and syntactic forms for manip
 
 Throughout this section, we will work with a Google Spreadsheet that contains 128 records, each with 10 fields (or, it has 10 columns and 128 rows). The spreadsheet describes the locations of cities in North America. This data comes from @(hyperlink "https://people.sc.fsu.edu/~jburkardt/data/csv/csv.html" "here"), and was made available under the GPL. The spreadsheet is @(hyperlink cities-gsheet "viewable online").
 
-It looks something like this:
+Or, if you just want a sense for what it looks like, it looks a bit like this:
 
 @centered{
   @(image #:scale 0.25 "images/cities-sheet.png")
@@ -86,15 +86,17 @@ The order of the parameters does not matter. The following @racket[select] expre
   @(image #:scale 0.75 "images/sieve.png")
 }
 
-The sieve, or filter operation, extracts rows from the source table using criteria that are expressed in terms of one or more columns in the table. Continuing with our table of cities, we might look for only those cities that are north of Lewiston, Maine (44.1004 N).
+The sieve operation extracts rows from the source table using criteria that are expressed in terms of one or more columns in the table. Continuing with our table of cities, we might look for only those cities that are north of Lewiston, Maine (44.1004 N).
 
 @examples[#:eval the-eval
 (define northerlyT
   (sieve T
          #:using LatD
          #:where (> LatD 44)))
-(table-count northerlyT)
-
+(define total-city-count (table-count T))
+(define northerly-city-count (table-count northerlyT))
+total-city-count
+northerly-city-count
 (pull northerlyT "City")
 ]
 
@@ -107,8 +109,8 @@ To reference a column in a query, it must be denoted with the @racket[#:using] k
          #:using LonD
          #:using EW
          #:where (and (> LatD 44) (< LonD 89.9) (equal? EW "W"))))
-(table-count north-easterlyT)
-
+(define north-easterly-city-count (table-count north-easterlyT))
+north-easterly-city-count
 (pull north-easterlyT "City")
 ]
 
