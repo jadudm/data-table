@@ -18,11 +18,14 @@ The @racket[data-table] library provides functions and syntactic forms for manip
  Selects one or more columns from a table, returning a new table containing only those columns.
 }
 
+@(require "drawing-support.rkt")
+@(draw-select "images/select.png")
 @centered{
   @(image #:scale 0.75 "images/select.png")
 }
 
-The @racket[select] form is used to extract one or more columns from a table, and returns a new table as a result of that operation.
+
+The @racket[select] form is used to extract one or more columns from a table, and returns a new table as a result of that operation. The new table contains only those columns named in the @racket[select] statement.
 
 Assuming a table caled @racket[Bob] with columns @racket[A], @racket[B], @racket[C], and @racket[D], we could @racket[select] a new table containing only @racket[A] and @racket[D] with the following expression:
 
@@ -54,7 +57,7 @@ The order of the parameters does not matter. The following expression is the sam
  Sieves, or filters, a table, using values from one or more columns in a boolean query.
 }
 
-
+@(draw-sieve "images/sieve.png")
 @centered{
   @(image #:scale 0.75 "images/sieve.png")
 }
