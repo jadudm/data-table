@@ -180,3 +180,40 @@
   (define sbn (get-series-by-name T col))
   ;; (printf "Requested ~a~nGot: ~a~n" col sbn)
   (gvector->vector (series-values sbn)))
+
+
+;; ----------------------------------------------------------------- 
+;; ----------------------------- TESTS -----------------------------
+;; -----------------------------------------------------------------
+
+(module+ test
+  (require rackunit)
+  (define (create-bacon-table)
+    (define baconT (create-table "bacons"))
+  
+    (define stripsS (create-series "strips" integer-sanitizer
+                                   #:values (map (λ (n) n) (range 5))))
+    (define streaksS (create-series "streaks" integer-sanitizer
+                                    #:values (map (λ (n) n) (range 5 10))))
+    (add-series baconT stripsS)
+    (add-series baconT streaksS)
+    baconT)
+
+  (define baconT (create-bacon-table))
+  (define otherBaconT (create-table "bacons"
+                                    '((strips streaks)
+                                      (0 5)
+                                      (1 6)
+                                      (2 7)
+                                      (3 8)
+                                      (4 9))))
+   
+  (define comparison-table
+    (data-table "bacons"
+                (gvector
+                 (series "strips"  integer-sanitizer (gvector 0 1 2 3 4))
+                 (series "streaks" integer-sanitizer (gvector 5 6 7 8 9))
+                 )))
+
+  (check-equal? comparison-table baconT)
+  (check-equal? baconT otherBaconT))
