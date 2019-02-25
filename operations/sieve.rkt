@@ -35,27 +35,37 @@
         [ndx (range (gvector-count (data-table-serieses T)))])
     (hash-set! col-ndx-map c ndx))
 
-  ;; Or, I could build a set of let bindings, and put those in an evaluator.
-  ;; FIXME: This doesn't work yet. So, this code is effectively dead code.
-  (define bindings
-    `(begin
-       ,@(for/list ([c (map string->symbol (for/list ([s (data-table-serieses T)]) (series-name s)))]
-                    [ndx (range (gvector-count (data-table-serieses T)))])
-           `(define ,c ,ndx))))
-  
-  ;; FIXME: Not used. Create an evaluator for the query.
-  (define racket-evaluator
-    (make-evaluator 'racket/base bindings))
-  
+  (define ids (map string->symbol (for/list ([s (data-table-serieses T)]) (series-name s))))
+  (define ndxs (range (gvector-count (data-table-serieses T))))
+ 
   ;; Now, go through each row.
   (define keep '())
   (for ([row (get-rows T)])
-    (define newQ (parse-query Q col-ndx-map row))
-
+    ;; This seems like a bizzare way to do this.
+    ;; However, I'm not thinking past the quoting. So, I'm going
+    ;; to simply load the env with the values and then do the evaluation
+    ;; every time. It's... hokey, but better than using eval?
+    ;; It also allows actual Racket expressions to be passed as the
+    ;; query, instead of just something I parse.
+    (define query-expression
+      `(define result
+         (let (
+               ,@(for/list ([c (map string->symbol
+                                    (for/list ([s (data-table-serieses T)]) (series-name s)))]
+                            [ndx (range (gvector-count (data-table-serieses T)))])
+                   `(,c ,(list-ref row ndx)))
+               )
+           ,Q
+           )))
+    
+    ;; (printf "~s~n" bindings)
+    
+    (define racket-evaluator
+      (make-evaluator 'racket/base query-expression))
     ;; Run the query against the row. The evaluation environment
     ;; has all of the bindings in it... which, it turns out, doesn't matter.
     ;; Because I don't know how to use the raw query to 
-    (when (racket-evaluator newQ)
+    (when (racket-evaluator `result)
       ;; (printf "Keeping: ~a~n" row)
       (set! keep (cons row keep)))
     )
@@ -83,7 +93,7 @@
 ;; -----------------------------------------------------------------
 
 (module+ test
-   (require rackunit
+  (require rackunit
            "../sanitizers.rkt")
   (define (create-bacon-table)
     (define baconT (create-table "bacons"))
@@ -110,7 +120,7 @@
       T))
 
   (define baconT (create-bacon-table))
-  (define sieveT (sieve baconT '(> strips 3)))
+  (define sieveT (sieve baconT '(let ([n 3]) (> strips n))))
   (check-equal? testT sieveT)
   
   (check-equal? #((4 9)) (get-rows sieveT))
