@@ -5,7 +5,7 @@
          "../tables.rkt")
 
 (provide (contract-out
-          [sieve                  (-> data-table? #:using list? #:where list? data-table?)]
+          [sieve                  (-> data-table? list? data-table?)]
           ))
 
 (define (parse-query Q h row)
@@ -22,23 +22,40 @@
     [(list op rand ...)
      #`(#,op #,@(map (λ (r) (parse-query r h row)) rand))]
     ))
-    
-(define (sieve T #:using cols #:where Q)
+
+(require racket/sandbox)
+(define (sieve T Q)
   (define newT (create-table (format "sieve-~a" (data-table-name T))))
   (define col-ndx-map (make-hash))
 
   ;; This gives me the index for a given column name into the
-  ;; full row of the source table.
+  ;; full row of the source table. This is then used when the
+  ;; query is parsed, so that the value is looked up in the data table.
   (for ([c (map string->symbol (for/list ([s (data-table-serieses T)]) (series-name s)))]
         [ndx (range (gvector-count (data-table-serieses T)))])
     (hash-set! col-ndx-map c ndx))
 
+  ;; Or, I could build a set of let bindings, and put those in an evaluator.
+  ;; FIXME: This doesn't work yet. So, this code is effectively dead code.
+  (define bindings
+    `(begin
+       ,@(for/list ([c (map string->symbol (for/list ([s (data-table-serieses T)]) (series-name s)))]
+                    [ndx (range (gvector-count (data-table-serieses T)))])
+           `(define ,c ,ndx))))
+  
+  ;; FIXME: Not used. Create an evaluator for the query.
+  (define racket-evaluator
+    (make-evaluator 'racket/base bindings))
+  
   ;; Now, go through each row.
   (define keep '())
   (for ([row (get-rows T)])
     (define newQ (parse-query Q col-ndx-map row))
-    ;; (printf "newQ: ~a~n" newQ)
-    (when (eval newQ)
+
+    ;; Run the query against the row. The evaluation environment
+    ;; has all of the bindings in it... which, it turns out, doesn't matter.
+    ;; Because I don't know how to use the raw query to 
+    (when (racket-evaluator newQ)
       ;; (printf "Keeping: ~a~n" row)
       (set! keep (cons row keep)))
     )
@@ -93,7 +110,8 @@
       T))
 
   (define baconT (create-bacon-table))
-  (define sieveT (sieve baconT #:using '(strips) #:where '(> strips 3)))
+  (define sieveT (sieve baconT '(> strips 3)))
   (check-equal? testT sieveT)
+  
   (check-equal? #((4 9)) (get-rows sieveT))
   )

@@ -103,9 +103,7 @@
   (check-equal? (table-count T) 3016)
     
   (check-equal? (table-count
-                 (sieve T
-                        #:using number_of_species
-                        #:where (< number_of_species 5)))
+                 (sieve T (< number_of_species 5)))
                 546)
 
   ;; ----- SQLite -----
@@ -115,8 +113,6 @@
   (define T2 (read-sqlite connSQLite "watwin_pairs"))
   (check-equal? (table-count T1) 3)
   (check-equal? (table-count T2) 51)
-  (check-equal? (table-count (sieve T2
-                                    #:using id
-                                    #:where (> id 2707309142)))
+  (check-equal? (table-count (sieve T2 (> id 2707309142)))
                 10)
   )

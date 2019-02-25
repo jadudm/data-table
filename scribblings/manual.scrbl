@@ -2,13 +2,6 @@
 @require[@for-label[data-table
                     racket/base]]
 
-@;{Does this disable caching in Pollen? Yes, it seems to.}
-@;{https://docs.racket-lang.org/pollen/Cache.html#%28part._.Disabling_the_cache%29}
-@(module setup racket/base
-  (provide (all-defined-out))
-  (define compile-cache-active #f)
-  (define render-cache-active #f))
-
 @title[]{data-table}
 @author{Matt Jadud}
 

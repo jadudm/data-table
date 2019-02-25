@@ -47,7 +47,7 @@ Given the @(hyperlink cities-gsheet "spreadsheet of city locations"), we might w
 
 @examples[#:eval the-eval
 (define cities-csv "http://bit.ly/cities-csv")
-(define T (sheet->table "Cities" cities-csv))
+(define T (read-gsheet "Cities" cities-csv))
 (define cities-statesT
   (select T "City" "State"))
 (table-column-count T)
@@ -59,9 +59,7 @@ Given the @(hyperlink cities-gsheet "spreadsheet of city locations"), we might w
 @defproc[#:link-target? false
          (sieve
           [table table?]
-          [#:using column-name identifier?] 
-          ...
-          [#:where query expression?]
+          [query expression?]
           )
          table?]{ 
  Sieves, or filters, a table, using values from one or more columns in a boolean query.
@@ -76,9 +74,7 @@ The sieve operation extracts rows from the source table using criteria that are 
 
 @examples[#:eval the-eval
 (define northerlyT
-  (sieve T
-         #:using LatD
-         #:where (> LatD 44)))
+  (sieve T (> LatD 44)))
 (define total-city-count (table-count T))
 (define northerly-city-count (table-count northerlyT))
 total-city-count
@@ -90,11 +86,7 @@ To reference a column in a query, it must be denoted with the @racket[#:using] k
 
 @examples[#:eval the-eval
 (define north-easterlyT
-  (sieve T
-         #:using LatD
-         #:using LonD
-         #:using EW
-         #:where (and (> LatD 44) (< LonD 89.9) (equal? EW "W"))))
+  (sieve T (and (> LatD 44) (< LonD 89.9) (equal? EW "W"))))
 (define north-easterly-city-count (table-count north-easterlyT))
 north-easterly-city-count
 (pull north-easterlyT "City")

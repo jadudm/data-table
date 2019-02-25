@@ -31,10 +31,50 @@
      ]))
 
 (define-syntax (sieve stx)
-  (syntax-parse stx
-    [(s T
-        (~alt (~seq #:using cols:id)
-              (~once (~seq #:where Q:expr))) ...)
-     #`(let ()
-         (op:sieve T #:using (quasiquote (cols ...)) #:where (quasiquote Q)))
-     ]))
+  (syntax-parse stx 
+    [(s T Q:expr) #`(op:sieve T (quasiquote Q) #:stx Q)]))
+
+;; ----------------------------------------------------------------- 
+;; ----------------------------- TESTS -----------------------------
+;; -----------------------------------------------------------------
+
+(module+ test
+   (require rackunit
+            "tables.rkt"
+             "sanitizers.rkt")
+  (define (create-bacon-table)
+    (define baconT (create-table "bacons"))
+  
+    (define stripsS (create-series "strips" integer-sanitizer
+                                   #:values (map (λ (n) n) (range 5))))
+    (define streaksS (create-series "streaks" integer-sanitizer
+                                    #:values (map (λ (n) n) (range 5 10))))
+    (add-series baconT stripsS)
+    (add-series baconT streaksS)
+    baconT)
+  
+  (define testT
+    (let ()
+      (define T (create-table "sieve-bacons"))
+      (add-series
+       T (create-series
+          "strips" integer-sanitizer
+          #:values (range 4 5)))
+      (add-series
+       T (create-series
+          "streaks" integer-sanitizer
+          #:values (range 9 10)))
+      T))
+
+  (define baconT (create-bacon-table))
+  (define sieveT (sieve baconT (> strips 3)))
+  ;; It turns out, passing a quoted expression is fine.
+  ;; Because, I parse it. Duh. This is much cleaner.
+  ;; This allows both a syntactic approach, as well as queries
+  ;; that are composed dynamically.
+  (define sieveT2 (sieve baconT '(> strips 3)))
+  (check-equal? testT sieveT)
+  (check-equal? testT sieveT2)
+  
+  (check-equal? #((4 9)) (get-rows sieveT))
+  )

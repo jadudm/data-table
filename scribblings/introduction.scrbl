@@ -32,7 +32,7 @@ The data-table library is intended to provide an interface to tabular data that 
 (define test-url "http://bit.ly/2E2qZoI")
  
 ; Fetch the URL, and turn it into a table named "Testing"
-(define fetched (sheet->table "Testing" test-url))
+(define fetched (read-gsheet "Testing" test-url))
  
 ; Select all of the rows where the "age" column is greater than 6.
 (sieve fetched
