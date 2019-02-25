@@ -73,7 +73,7 @@
        (define S (create-series (~a name)
                                 (guess-sanitizer data)
                                 #:values data))
-       (add-series T S))
+       (set! T (add-series T S)))
      T]
     ))
 
@@ -86,15 +86,22 @@
     (valid-field-name? 'create-numeric-table f))
   (let ([T (create-table (format "~a" name))])
     (for ([col (map (λ (f) (format "~a" f)) field-strings)])
-      (add-series T (create-series col number-sanitizer)))
+      (set! T (add-series T (create-series col number-sanitizer))))
     T))
 
+;; CONTRACT
+;; add-series : table series -> table
+;; Returns a new table.
 (define (add-series T S)
-  ;; FIXME Check to see that a series with this name does
-  ;; not already exist.
-  ;; ADDITION May want a replace-series interface.
-  (gvector-add! (data-table-serieses T) S)
-  T)
+  (when (member (series-name S)
+                (map series-name (gvector->list (data-table-serieses T))))
+    (error 'add-series "Series [ ~a ] already exists in table [ ~a ]~n"
+           (series-name S) (data-table-name T)))
+  (define new-table (create-table (data-table-name T)))
+  (for ([s (data-table-serieses T)])
+    (gvector-add! (data-table-serieses new-table) s))
+  (gvector-add! (data-table-serieses new-table) S)
+  new-table)
                            
 ;; FIXME For now, we're consuming lists. It would be nice
 ;; to consume vectors and... whatever else might come in.
@@ -195,9 +202,9 @@
                                    #:values (map (λ (n) n) (range 5))))
     (define streaksS (create-series "streaks" integer-sanitizer
                                     #:values (map (λ (n) n) (range 5 10))))
-    (add-series baconT stripsS)
-    (add-series baconT streaksS)
-    baconT)
+
+    (add-series (add-series baconT stripsS) streaksS)
+    )
 
   (define baconT (create-bacon-table))
   (define otherBaconT (create-table "bacons"
@@ -215,5 +222,12 @@
                  (series "streaks" integer-sanitizer (gvector 5 6 7 8 9))
                  )))
 
-  (check-equal? comparison-table baconT)
-  (check-equal? baconT otherBaconT))
+  (check-equal? baconT comparison-table )
+  (check-equal? baconT otherBaconT)
+
+  ;; This should fail; it adds a series that already exists.
+  (check-exn
+   exn:fail?
+   (λ ()
+     (add-series baconT (series "strips"  integer-sanitizer (gvector 0 1 2 3 4)))))
+  )
