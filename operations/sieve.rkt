@@ -1,6 +1,7 @@
 #lang racket
 
 (require data/gvector
+         racket/sandbox
          "../types.rkt"
          "../tables.rkt")
 
@@ -8,22 +9,6 @@
           [sieve                  (-> data-table? list? data-table?)]
           ))
 
-(define (parse-query Q h row)
-  (match Q
-    [(list) '()]
-    ;; FIXME This assumes rows are lists.
-    [(? symbol? o) (list-ref row (hash-ref h o false))]
-    [(? string? o) o]
-    [(? number? o) o]
-    [(list op lhs rhs)
-     (let ([plhs (parse-query lhs h row)]
-           [prhs (parse-query rhs h row)])
-       #`(#,op #,plhs #,prhs))]
-    [(list op rand ...)
-     #`(#,op #,@(map (λ (r) (parse-query r h row)) rand))]
-    ))
-
-(require racket/sandbox)
 (define (sieve T Q)
   (define newT (create-table (format "sieve-~a" (data-table-name T))))
   (define col-ndx-map (make-hash))
