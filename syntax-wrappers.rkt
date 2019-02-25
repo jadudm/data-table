@@ -32,7 +32,7 @@
 
 (define-syntax (sieve stx)
   (syntax-parse stx 
-    [(s T Q:expr) #`(op:sieve T (quasiquote Q) #:stx Q)]))
+    [(s T Q:expr) #`(op:sieve T (quasiquote Q))]))
 
 ;; ----------------------------------------------------------------- 
 ;; ----------------------------- TESTS -----------------------------
@@ -67,7 +67,7 @@
       T))
 
   (define baconT (create-bacon-table))
-  (define sieveT (sieve baconT (> strips 3)))
+  (define sieveT (sieve baconT '(> strips 3)))
   ;; It turns out, passing a quoted expression is fine.
   ;; Because, I parse it. Duh. This is much cleaner.
   ;; This allows both a syntactic approach, as well as queries
