@@ -38,10 +38,10 @@
   ;; Each series comes from the CQ query.
   ;; The 0th element is the name, the 1st element is the type.
   (for ([row (query-rows conn STQ)])
-    (add-series T (create-series (vector-ref row nc)
-                                 (sql-type->sanitizer (vector-ref row tc))
-                                 #:values empty
-                                 )))
+    (add-series! T (create-series (vector-ref row nc)
+                                  (sql-type->sanitizer (vector-ref row tc))
+                                  #:values empty
+                                  )))
   ;; Then, insert all the rows.
   (for ([row (query-rows conn SAQ)])
     (insert T (vector->list row)))

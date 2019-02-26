@@ -49,18 +49,18 @@
                                    #:values (map (λ (n) n) (range 5))))
     (define streaksS (create-series "streaks" integer-sanitizer
                                     #:values (map (λ (n) n) (range 5 10))))
-    (add-series baconT stripsS)
-    (add-series baconT streaksS)
+    (add-series! baconT stripsS)
+    (add-series! baconT streaksS)
     baconT)
   
   (define testT
     (let ()
       (define T (create-table "sieve-bacons"))
-      (add-series
+      (add-series!
        T (create-series
           "strips" integer-sanitizer
           #:values (range 4 5)))
-      (add-series
+      (add-series!
        T (create-series
           "streaks" integer-sanitizer
           #:values (range 9 10)))

@@ -20,7 +20,7 @@
     (define newT (create-table table-name))
     (for ([c cols])
       (define s (get-series-by-name T (format "~a" c)))
-      (add-series newT s))
+      (add-series! newT s))
     newT))
 
 ;; ----------------------------------------------------------------- 
@@ -37,14 +37,14 @@
                                    #:values (map (λ (n) n) (range 5))))
     (define streaksS (create-series "streaks" integer-sanitizer
                                     #:values (map (λ (n) n) (range 5 10))))
-    (add-series baconT stripsS)
-    (add-series baconT streaksS)
+    (add-series! baconT stripsS)
+    (add-series! baconT streaksS)
     baconT)
   
   (define testT
     (let ()
       (define T (create-table "bacons-streaks"))
-      (add-series
+      (add-series!
        T (create-series
           "streaks" integer-sanitizer
           #:values (range 5 10)))

@@ -53,7 +53,7 @@
         [h headers]
         [ndx (range (length sanitizers))])
     (define new-series (create-series h s #:values (hash-ref seriesH ndx)))
-    (add-series T new-series)
+    (add-series! T new-series)
     )
   ;; Return the new table.
   T)
@@ -114,7 +114,7 @@
         [h headers]
         [ndx (range (length sanitizers))])
     (define new-series (create-series h s #:values (hash-ref seriesH ndx)))
-    (add-series T new-series)
+    (add-series! T new-series)
     )
   ;; Return the new table.
   T
