@@ -4,7 +4,7 @@
 (define version "1.0.0")
 
 (define deps '("db"
-               "data/gvector"
+               "data-lib"
                "csv-reading"
                "gregor"
                "net/url"
