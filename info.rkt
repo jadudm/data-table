@@ -7,7 +7,6 @@
                "data-lib"
                "csv-reading"
                "gregor"
-               "net/url"
                "rackunit"
                "syntax/parse"
                ))
