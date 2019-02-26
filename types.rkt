@@ -15,5 +15,3 @@
 ;; A column in a table is a series.
 (struct series (name sanitizer values)
   #:transparent)
-
-(struct exn:data-table exn ())

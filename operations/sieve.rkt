@@ -10,7 +10,6 @@
           ))
 
 (define (sieve T Q)
-  (define newT (create-table (format "sieve-~a" (data-table-name T))))
   (define col-ndx-map (make-hash))
 
   ;; This gives me the index for a given column name into the
@@ -57,18 +56,20 @@
 
   ;; (printf "Kept: ~a~n" keep)
   ;; Add the kept data to the newT
+  (define newT (create-table (format "sieve-~a" (data-table-name T))))
   (for ([s (data-table-serieses T)]
         [ndx (gvector-count (data-table-serieses T))]
         )
     ;;(define s (get-series-by-name T (format "~a" c)))
     ;; (printf "Sieved: ~a~n" s)
-    (add-series newT (create-series (series-name s)
-                                    (series-sanitizer s)
-                                    #:values
-                                    (map (λ (r) (list-ref r (hash-ref col-ndx-map
-                                                                      (string->symbol
-                                                                       (series-name s)))))
-                                         (reverse keep))))
+    (add-series! newT (create-series (series-name s)
+                                          (series-sanitizer s)
+                                          #:values
+                                          (map (λ (r)
+                                                 (list-ref r (hash-ref col-ndx-map
+                                                                       (string->symbol
+                                                                        (series-name s)))))
+                                               (reverse keep))))
     )
   newT
   )
@@ -87,18 +88,18 @@
                                    #:values (map (λ (n) n) (range 5))))
     (define streaksS (create-series "streaks" integer-sanitizer
                                     #:values (map (λ (n) n) (range 5 10))))
-    (add-series baconT stripsS)
-    (add-series baconT streaksS)
+    (add-series! baconT stripsS)
+    (add-series! baconT streaksS)
     baconT)
   
   (define testT
     (let ()
       (define T (create-table "sieve-bacons"))
-      (add-series
+      (add-series!
        T (create-series
           "strips" integer-sanitizer
           #:values (range 4 5)))
-      (add-series
+      (add-series!
        T (create-series
           "streaks" integer-sanitizer
           #:values (range 9 10)))

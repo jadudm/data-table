@@ -12,7 +12,7 @@
                                      (-> any/c any)
                                      #:values list?
                                      series?)]
-          [add-series            (-> data-table? series? data-table?)]
+          [add-series!            (-> data-table? series? data-table?)]
           [insert                (case->
                                   (-> data-table? series? list? any)
                                   (-> data-table? list? any)
@@ -73,7 +73,7 @@
        (define S (create-series (~a name)
                                 (guess-sanitizer data)
                                 #:values data))
-       (set! T (add-series T S)))
+       (add-series! T S))
      T]
     ))
 
@@ -86,22 +86,19 @@
     (valid-field-name? 'create-numeric-table f))
   (let ([T (create-table (format "~a" name))])
     (for ([col (map (λ (f) (format "~a" f)) field-strings)])
-      (set! T (add-series T (create-series col number-sanitizer))))
+      (add-series! T (create-series col number-sanitizer)))
     T))
 
 ;; CONTRACT
 ;; add-series : table series -> table
 ;; Returns a new table.
-(define (add-series T S)
+(define (add-series! T S)
   (when (member (series-name S)
                 (map series-name (gvector->list (data-table-serieses T))))
     (error 'add-series "Series [ ~a ] already exists in table [ ~a ]~n"
            (series-name S) (data-table-name T)))
-  (define new-table (create-table (data-table-name T)))
-  (for ([s (data-table-serieses T)])
-    (gvector-add! (data-table-serieses new-table) s))
-  (gvector-add! (data-table-serieses new-table) S)
-  new-table)
+  (gvector-add! (data-table-serieses T) S)
+  T)
                            
 ;; FIXME For now, we're consuming lists. It would be nice
 ;; to consume vectors and... whatever else might come in.
@@ -203,7 +200,7 @@
     (define streaksS (create-series "streaks" integer-sanitizer
                                     #:values (map (λ (n) n) (range 5 10))))
 
-    (add-series (add-series baconT stripsS) streaksS)
+    (add-series! (add-series! baconT stripsS) streaksS)
     )
 
   (define baconT (create-bacon-table))
@@ -229,5 +226,5 @@
   (check-exn
    exn:fail?
    (λ ()
-     (add-series baconT (series "strips"  integer-sanitizer (gvector 0 1 2 3 4)))))
+     (add-series! baconT (series "strips"  integer-sanitizer (gvector 0 1 2 3 4)))))
   )
