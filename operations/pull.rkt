@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (contract-out
-          [pull           (-> data-table? string? vector?)]))
+          [pull           (-> data-table? string? list?)]))
 
 (require data/gvector
          "../types.rkt"
@@ -12,7 +12,7 @@
     [(empty? s*)
      (error 'pull "Cannot find a column named ~a" name)]
     [(equal? (series-name (first s*)) name)
-     (gvector->vector (series-values (first s*)))]
+     (gvector->list (series-values (first s*)))]
     [else
      (pull-helper (rest s*) name)]))
 

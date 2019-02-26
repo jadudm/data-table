@@ -1,9 +1,20 @@
 #lang racket
-(require racket/draw)
+(require racket/draw scribble/example)
 
 (provide draw-select
          draw-sieve
-         draw-pull)
+         draw-pull
+      
+         the-eval
+       cities-gsheet
+       cities-csv)
+
+          
+(define the-eval  (make-base-eval))
+
+(define cities-gsheet "http://bit.ly/cities-gsheet")
+(define cities-csv "http://bit.ly/cities-csv")
+
 
 (define W 600)
 (define H 300)

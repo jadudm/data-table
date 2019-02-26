@@ -1,4 +1,8 @@
 #lang scribble/manual
+@(require scribble/example
+          racket/sandbox
+          )
+          
 @require[@for-label["../main.rkt"
                     racket/base]]
  
@@ -23,22 +27,24 @@ The data-table library is intended to provide an interface to tabular data that 
 
 @section{What's It Look Like?}
 
-@#reader scribble/comment-reader
-(racketblock
-; Require the library
-(require data-table)
- 
-; A remote Google Spreadsheet that we want to manipulate
-(define test-url "http://bit.ly/2E2qZoI")
- 
-; Fetch the URL, and turn it into a table named "Testing"
-(define fetched (read-gsheet "Testing" test-url))
- 
-; Select all of the rows where the "age" column is greater than 6.
-(sieve fetched
-       #:using age
-       #:where (> age 6))
-)
+@(define my-evaluator
+   (parameterize ([sandbox-output 'string]
+                  [sandbox-error-output 'string]
+                  [sandbox-memory-limit 50])
+     (make-evaluator 'racket/base
+                     #:requires ' (data-table))))
+
+@examples[#:eval my-evaluator
+          ; A remote Google Spreadsheet that we want to manipulate
+          (define test-url "http://bit.ly/2E2qZoI")
+          
+          ; Fetch the URL, and turn it into a table named "Testing"
+          (define fetched (read-gsheet "Testing" test-url))
+          
+          ; Select all of the rows where the "age" column is greater than 6.
+          (sieve fetched (> age 6))
+          ]
+
 
 @section{The Source and Tickets}
 
