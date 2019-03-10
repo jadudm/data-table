@@ -1,10 +1,11 @@
 #lang scribble/manual
-@(require racket)
+@(require racket racket/runtime-path)
 @require[@for-label[racket db]]
 @(require scribble/eval
           scribble/struct
           racket/sandbox
           data-table)
+
 @(require "drawing-support.rkt")
 @interaction-eval[#:eval the-eval
                 (require data-table)]
@@ -19,10 +20,11 @@
  Selects one or more columns from a table, returning a new table containing only those columns.
 }
 
-@(draw-select "images/select.png")
+@(define-runtime-path select.png (build-path "images" "select.png"))
 @centered{
-  @(image #:scale 0.75 "images/select.png")
+  @(image #:scale 0.75 select.png)
 }
+
 
 The @racket[select] form is used to extract one or more columns from a table, and returns a new table as a result of that operation. The new table contains only those columns named in the @racket[select] statement.
 

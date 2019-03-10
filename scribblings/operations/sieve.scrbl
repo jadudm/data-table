@@ -1,10 +1,11 @@
 #lang scribble/manual
-@(require racket)
+@(require racket racket/runtime-path)
 @require[@for-label[racket db]]
 @(require scribble/eval
           scribble/struct
           racket/sandbox
           data-table)
+
 @(require "drawing-support.rkt")
 @interaction-eval[#:eval the-eval
                    (require data-table)]
@@ -21,9 +22,9 @@
  Sieves, or filters, a table, using values from one or more columns in a boolean query.
 }
 
-@(draw-sieve "images/sieve.png")
+@(define-runtime-path sieve.png (build-path "images" "sieve.png"))
 @centered{
-  @(image #:scale 0.75 "images/sieve.png")
+  @(image #:scale 0.75 sieve.png)
 }
 
 The sieve operation extracts rows from the source table using criteria that are expressed in terms of one or more columns in the table. Continuing with our table of cities, we might look for only those cities that are north of Lewiston, Maine (44.1004 N).

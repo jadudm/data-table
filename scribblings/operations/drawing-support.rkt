@@ -1,5 +1,5 @@
 #lang racket
-(require racket/draw scribble/example)
+(require racket/draw scribble/example racket/sandbox)
 
 (provide draw-select
          draw-sieve
@@ -10,7 +10,10 @@
        cities-csv)
 
           
-(define the-eval  (make-base-eval))
+(define the-eval  
+  (call-with-trusted-sandbox-configuration
+    (lambda ()
+     (make-base-eval))))
 
 (define cities-gsheet "http://bit.ly/cities-gsheet")
 (define cities-csv "http://bit.ly/cities-csv")

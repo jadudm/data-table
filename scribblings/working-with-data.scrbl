@@ -1,5 +1,5 @@
 #lang scribble/manual
-@(require racket)
+@(require racket racket/runtime-path)
 @require[@for-label[racket db]]
 @(require scribble/eval
           scribble/struct
@@ -18,8 +18,9 @@ The @racket[data-table] library provides functions and syntactic forms for manip
 
 Or, if you just want a sense for what it looks like, it looks a bit like this:
 
+@(define-runtime-path cs "cities-sheet.png")
 @centered{
-  @(image #:scale 0.25 "images/cities-sheet.png")
+  @(image #:scale 0.25 cs)
 }
 
 Also, this section borrows the visual language of the @(hyperlink "https://github.com/rstudio/cheatsheets/blob/master/data-transformation.pdf" "dplyr") library for depicting operations on data-tables.

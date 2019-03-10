@@ -22,7 +22,6 @@ and want to manipulate that data in Racket. When you're done, you might want to 
 
 data-table is inspired and informed by data frames (from the R statistical language), as well as Pyret's data tables.
 
-
 @include-section["introduction.scrbl"]
 
 @include-section["reference.scrbl"]

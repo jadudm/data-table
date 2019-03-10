@@ -28,11 +28,13 @@ The data-table library is intended to provide an interface to tabular data that 
 @section{What's It Look Like?}
 
 @(define my-evaluator
-   (parameterize ([sandbox-output 'string]
-                  [sandbox-error-output 'string]
-                  [sandbox-memory-limit 50])
-     (make-evaluator 'racket
-                     #:requires '(data-table))))
+  (call-with-trusted-sandbox-configuration
+    (lambda ()
+     (parameterize ([sandbox-output 'string]
+                    [sandbox-error-output 'string]
+                    [sandbox-memory-limit 500])
+       (make-evaluator 'racket
+                       #:requires '(data-table))))))
 
 @examples[#:eval my-evaluator
           ; A remote Google Spreadsheet that we want to manipulate
@@ -44,7 +46,6 @@ The data-table library is intended to provide an interface to tabular data that 
           ; Select all of the rows where the "age" column is greater than 6.
           (sieve fetched (> age 6))
           ]
-
 
 @section{The Source and Tickets}
 
