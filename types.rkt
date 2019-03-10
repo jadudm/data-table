@@ -2,7 +2,8 @@
 (require racket/struct
          data/gvector)
 
-(provide (all-defined-out))
+(provide (struct-out series)
+         (struct-out data-table))
 
 
 (define (field o width side
@@ -36,24 +37,31 @@
   (define COL-WIDTH 10)
   (define COLS-TO-SHOW 6)
 
-  (define total-columns (length (data-table-serieses obj)))
+  (define total-columns (gvector-count (data-table-serieses obj)))
   (define cols-to-take
-    (if (> (length (data-table-serieses obj)) COLS-TO-SHOW) COLS-TO-SHOW num-cols))
+    (if (> (gvector-count (data-table-serieses obj)) COLS-TO-SHOW)
+        COLS-TO-SHOW
+        (gvector-count (data-table-serieses obj))))
   
   (define col-names
     (take 
      (map (λ (s)
             (field (format "~a" s) COL-WIDTH 'right #:suffix " | "))
-          (map series-name (data-table-serieses obj)))
+          (map series-name (gvector->list (data-table-serieses obj))))
      cols-to-take))
   (define num-cols (length col-names))
   
   
   (define title (format "~a" (data-table-name obj) ))
-  (define meta  (format "~a columns, ~a rows ~a"
-                        (length (data-table-serieses obj))
-                        (gvector-count (series-values
-                                        (first (data-table-serieses obj))))
+  (define num-rows
+    (gvector-count (series-values
+                    (gvector-ref (data-table-serieses obj) 0))))
+  (define num-columns (gvector-count (data-table-serieses obj)))
+  (define meta  (format "~a column~a, ~a row~a ~a"
+                        num-columns
+                        (if (< 1 num-columns) "s" "")
+                        num-rows
+                        (if (< 1 num-rows) "s" "")
                         (if (> total-columns cols-to-take)
                             (format "(only showing ~a columns)" cols-to-take)
                             "")
@@ -75,12 +83,24 @@
   (newline the-port)
   
   (for ([ndx (range 4)])
-    (for ([s (take (data-table-serieses obj) cols-to-take)])
+    (define show-newline true)
+    (for ([s (take (gvector->list (data-table-serieses obj)) cols-to-take)])
+      (with-handlers ([exn? (λ (e) (set! show-newline false))])
+        (display (field
+                  (gvector-ref (series-values s) ndx)
+                  COL-WIDTH 'right #:suffix " | ")
+                 the-port)))
+      (when show-newline (newline the-port))
+      )
+
+  (when (> num-rows 4)
+    (for ([s (take (gvector->list (data-table-serieses obj)) cols-to-take)])
       (display (field
-                (gvector-ref (series-values s) ndx)
+                "..."
                 COL-WIDTH 'right #:suffix " | ")
                the-port))
-    (newline the-port))
+    (newline the-port)
+    )
   )
   
 (struct data-table (name serieses)
@@ -132,7 +152,7 @@
 ;;  #:methods gen:custom-write     
 ;;  [(define write-proc series-print)])
        
-
+#|
 (define foo
   (series "foo" (λ (o) o) (list->gvector '(1 2 3 4 5))))
 (series "bar" (λ (o) o) (list->gvector '(1 2 3 4 5)))
@@ -148,6 +168,7 @@
                                      5.67890123))))
 (define T
   (data-table "a-table"
+            (list->gvector
               (list
                foo
                (series "bar" (λ (o) o) (list->gvector '(1 2 3 4 5)))
@@ -158,4 +179,13 @@
                big
                big
                big
-               )))
+               ))))
+
+(define T2
+  (data-table "a-table"
+    (list->gvector 
+              (list
+                (series "foo" (λ (o) o) (list->gvector '(4 5 6)))
+               (series "bar" (λ (o) o) (list->gvector '(1 2 3)))
+               ))))
+|#
