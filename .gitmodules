@@ -1,0 +1,3 @@
+[submodule "data-science"]
+	path = data-science
+	url = https://github.com/n3mo/data-science

@@ -8,6 +8,7 @@
                "csv-reading"
                "gregor"
                "rackunit"
+               "rackunit-chk"
                ))
 
 (define scribblings '(("scribblings/manual.scrbl")))

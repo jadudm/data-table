@@ -42,7 +42,7 @@
            ,Q
            )))
     
-    ;; (printf "~s~n" bindings)
+    ;;(printf "~s~n" query-expression)
     
     (define racket-evaluator
       (make-evaluator 'racket/base query-expression))
