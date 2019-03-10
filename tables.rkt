@@ -34,37 +34,63 @@
          "sanitizers.rkt"
          "types.rkt")
 
-;; CONSTANTS
-(define default-gvector-length 100)
-
-;; FIXME : These should probably be exceptions.
+;; valid-table-name? : symbol string -> void | exn
+;; PURPOSE
+;; Throws an exception if someone tries to create a table
+;; that has an invalid table name. The name must conform to
+;; SQL semantics... so, we allow lowercase, uppercase, numbers, and the
+;; underscore. And, also within those constraints, it must be a valid
+;; Racket symbol (meaning it cannot start with a number).
 (define (valid-table-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun
            (string-append "Valid names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
                           "\tYou provided: ~a" name))))
 
-;; FIXME : These should probably be exceptions.
+;; valid-field-name? : symbol string -> void | exn
+;; PURPOSE
+;; Like valid table name, above.
 (define (valid-field-name? fun name)
   (unless (regexp-match "[a-zA-Z0-9_]" name)
     (error fun
            (string-append "Valid column names for tables contain letters, numbers, and the underscore (the _ symbol). Nothing else.~n"
                           "\tYou provided: ~a" name))))
+
 ;; PURPOSE
 ;; Creates a table structure. Makes sure the name conforms
 ;; to SQL naming conventions, so that we can save to an SQLite file.
 (define create-table
   (match-lambda*
+    ;; This is the no-data-case, where the user creates a table
+    ;; with only a name.
+    ;; (create-table "periodic_table")
     [(list (? string? name))
      (define name-string (~a name))
      (valid-table-name? 'create-table name-string)
      (data-table name-string (make-gvector))]
-    ;; Matches "a-table" '((a b c) (1 2 3) (4 5 6) ...)
+    ;; This matches the case where the programmer wants to
+    ;; create a table with columns and data. It consumes a list
+    ;; of lists, where the first list is a list of symbols or strings,
+    ;; and the rest of the lists are data rows. All of them need to be
+    ;; the same length.
+    ;;
+    ;; Matches
+    ;; (create-table "a-table" '((a b c) (1 2 3) (4 5 6) ...))
     [(list (? string? name)
-           (list (list (? symbol? s*) ...)
+           (list (list (? (λ (s) (or (symbol? s) (string? s))) s*) ...)
                  (list data-row* ...) ...))
+     ;; Error checking
      (define name-string (~a name))
      (valid-table-name? 'create-table name-string)
+     (define leng-names (length s*))
+     (define leng-rows (map length data-row*))
+     ;; FIXME
+     ;; It would be nice if this reported which row was not the right length.
+     (unless (andmap (λ (l) (= leng-names l)) leng-rows)
+       (error 'create-table
+              "All of the rows are not of length ~a" leng-names))
+
+     ;; Proceeding onward...
      (define T (data-table name-string (make-gvector)))
      (for ([name s*]
            [ndx  (range (length s*))])
@@ -91,7 +117,11 @@
 
 ;; CONTRACT
 ;; add-series : table series -> table
-;; Returns a new table.
+;; PURPOSE
+;; This mutates the table given. It adds a new series by extending
+;; the gvector that holds the serieses. Returns the table, but
+;; it is not constructing a new table; it is returning the existing,
+;; mutated table.
 (define (add-series! T S)
   (when (member (series-name S)
                 (map series-name (gvector->list (data-table-serieses T))))
@@ -99,13 +129,28 @@
            (series-name S) (data-table-name T)))
   (gvector-add! (data-table-serieses T) S)
   T)
-                           
-;; FIXME For now, we're consuming lists. It would be nice
-;; to consume vectors and... whatever else might come in.
+
+;; CONTRACT
+;; ->gvector : (or list vector) -> gvector
+;; Takes a list-like thing, and returns a gvector
+(define (->gvector o)
+  (cond
+    [(list? o)   (list->gvector o)]
+    [(vector? o) (vector->gvector o)]
+    [else
+     (error '->gvector "Cannot convert ~a to a gvector."
+            o)]))
+
+;; CONTRACT
+;; create-series : string λ #:values (list-of any) -> series
+;; PURPOSE
+;; Takes a list of values that conform to the contract of the
+;; sanitizer passed in, and returns a series structure constructed
+;; from those values.
 (define (create-series name sanitizer
                        #:values [values empty])
   (define sanitized (sanitizer values))
-  (define gv (list->gvector sanitized))
+  (define gv (->gvector sanitized))
   (series name sanitizer gv))
 
 ;; Insert value into a series in a table.
