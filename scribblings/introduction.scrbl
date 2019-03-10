@@ -31,8 +31,8 @@ The data-table library is intended to provide an interface to tabular data that 
    (parameterize ([sandbox-output 'string]
                   [sandbox-error-output 'string]
                   [sandbox-memory-limit 50])
-     (make-evaluator 'racket/base
-                     #:requires ' (data-table))))
+     (make-evaluator 'racket
+                     #:requires '(data-table))))
 
 @examples[#:eval my-evaluator
           ; A remote Google Spreadsheet that we want to manipulate
