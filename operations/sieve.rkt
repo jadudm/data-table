@@ -21,40 +21,37 @@
 
   (define ids (map string->symbol (for/list ([s (data-table-serieses T)]) (series-name s))))
   (define ndxs (range (gvector-count (data-table-serieses T))))
- 
-  ;; Now, go through each row.
-  (define keep '())
-  (for ([row (get-rows T)])
-    ;; This seems like a bizzare way to do this.
-    ;; However, I'm not thinking past the quoting. So, I'm going
-    ;; to simply load the env with the values and then do the evaluation
-    ;; every time. It's... hokey, but better than using eval?
-    ;; It also allows actual Racket expressions to be passed as the
-    ;; query, instead of just something I parse.
-    (define query-expression
-      `(define result
-         (let (
-               ,@(for/list ([c (map string->symbol
-                                    (for/list ([s (data-table-serieses T)]) (series-name s)))]
-                            [ndx (range (gvector-count (data-table-serieses T)))])
-                   `(,c ,(list-ref row ndx)))
-               )
-           ,Q
-           )))
-    
-    ;;(printf "~s~n" query-expression)
-    
-    (define racket-evaluator
-      (make-evaluator 'racket/base query-expression))
-    ;; Run the query against the row. The evaluation environment
-    ;; has all of the bindings in it... which, it turns out, doesn't matter.
-    ;; Because I don't know how to use the raw query to 
-    (when (racket-evaluator `result)
-      ;; (printf "Keeping: ~a~n" row)
-      (set! keep (cons row keep)))
-    )
 
+  (define racket-evaluator
+      (make-evaluator 'racket/base))
+  
+  (define all-rows (get-rows T))
+  (define query-expression
+    `(list 
+      ,@(for/list ([row all-rows]
+                   [ndx (vector-length all-rows)])
+          ;; This seems like a bizzare way to do this.
+          ;; However, I'm not thinking past the quoting. So, I'm going
+          ;; to simply load the env with the values and then do the evaluation
+          ;; every time. It's... hokey, but better than using eval?
+          ;; It also allows actual Racket expressions to be passed as the
+          ;; query, instead of just something I parse.
+          `(if (let (
+                     ,@(for/list ([c (map string->symbol
+                                          (for/list ([s (data-table-serieses T)]) (series-name s)))]
+                                  [ndx (range (gvector-count (data-table-serieses T)))])
+                         `(,c ,(list-ref row ndx)))
+                     )
+                 ,Q
+                 ) ,ndx #f))))
+    
+  ;;(printf "~s~n" query-expression)
+    
+  (define keep (filter number? (racket-evaluator query-expression)))
+  (define keep2 (map (λ (ndx) (vector-ref all-rows ndx)) keep))
+  
   ;; (printf "Kept: ~a~n" keep)
+  
   ;; Add the kept data to the newT
   (define newT (create-table (format "sieve-~a" (data-table-name T))))
   (for ([s (data-table-serieses T)]
@@ -69,7 +66,7 @@
                                                  (list-ref r (hash-ref col-ndx-map
                                                                        (string->symbol
                                                                         (series-name s)))))
-                                               (reverse keep))))
+                                               (reverse keep2))))
     )
   newT
   )
