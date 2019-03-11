@@ -3,3 +3,5 @@ compiled/
 doc/
 *rkt~
 *sqlite
+data-science/compiled/
+data-science/lexicons/compiled/
