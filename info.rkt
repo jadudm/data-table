@@ -1,7 +1,7 @@
 #lang info
 
 (define collection "data-table")
-(define version "1.0.0")
+(define version "1.0")
 
 (define deps '("db"
                "data-lib"
